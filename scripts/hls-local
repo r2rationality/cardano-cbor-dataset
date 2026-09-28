@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+project_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 
 # VSCode can start this script without an active Flox shell.
 if ! command -v flox >/dev/null 2>&1; then
@@ -9,4 +9,4 @@ if ! command -v flox >/dev/null 2>&1; then
   exit 127
 fi
 
-exec flox activate -d "$project_dir" -- haskell-language-server-wrapper "$@"
+exec flox activate -d "$project_dir" -- sh "$project_dir/scripts/hls-run" "$@"

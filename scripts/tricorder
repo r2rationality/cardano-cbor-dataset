@@ -12,14 +12,15 @@ export PATH="$project_dir/scripts/tricorder-tools:$PATH"
 case "${1:-}" in
   ui|start|restart)
     # Tricorder allows only 60 seconds for GHCi startup. Compile dependencies
-    # first, with visible errors and no Tricorder timeout.
+    # first, with visible errors and no Tricorder timeout. The whole package is
+    # the target, so its own library, which GHCi loads, is not compiled here.
     case "${2:-}" in
       -h|--help) ;;
       *)
         cd "$project_dir"
         cabal build --project-dir="$project_dir" \
           --builddir="$project_dir/.cache/tricorder-build" \
-          --enable-tests --only-dependencies cardano-cbor-dataset:exe:cbor cardano-cbor-dataset:tests
+          --enable-tests --only-dependencies cardano-cbor-dataset
         ;;
     esac
     ;;

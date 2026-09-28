@@ -1,3 +1,6 @@
 session:
-  command: cabal repl --enable-multi-repl --repl-options=-ignore-dot-ghci cardano-cbor-dataset
-  watch_dirs: [app, test]
+  command: cabal repl --enable-multi-repl --repl-options=-ignore-dot-ghci cardano-cbor-dataset:lib:cardano-cbor-dataset cardano-cbor-dataset:exe:cbor cardano-cbor-dataset:test:unit cardano-cbor-dataset:test:normalization-vectors
+  watch_dirs: [app, exe, test]
+  # The integration suite reads the whole dataset and takes minutes: run it with `just integration` before pushing a
+  # dataset, not on every change.
+  test_targets: [cardano-cbor-dataset:test:unit, cardano-cbor-dataset:test:normalization-vectors]

@@ -1,0 +1,10 @@
+{
+  "haskell.serverExecutablePath": "${workspaceFolder}/scripts/hls-local",
+  "haskell.plugin.semanticTokens.globalOn": true,
+  "haskell.formattingProvider": "ormolu",
+  "haskell.plugin.ormolu.config.external": true,
+  "[haskell]": {
+    "editor.defaultFormatter": "haskell.haskell"
+  },
+  "haskell.componentsLoading": "multi: needed-only"
+}

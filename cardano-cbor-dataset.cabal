@@ -3,17 +3,60 @@ name:          cardano-cbor-dataset
 version:       0.1.0.0
 build-type:    Simple
 
-executable cbor
-  main-is:          Main.hs
+common language
+  default-language: GHC2021
+  default-extensions:
+    StrictData,
+    LambdaCase,
+    OverloadedStrings,
+    BlockArguments,
+    DerivingVia,
+  mixins: base hiding (Prelude), relude (Relude as Prelude), relude
+
+-- Every module except the command line. The executable and the test suites
+-- depend on it rather than compiling the modules themselves, so each module
+-- belongs to one component only, which HLS needs to load them together.
+library
+  import:           language
   hs-source-dirs:   app
-  other-modules:
-    Corpus
-    LedgerRules
-    Normalize
-    Paths
-    Report
-  default-language: Haskell2010
-  ghc-options:      -Wall -Wcompat
+  exposed-modules:
+    Base.Eval
+    Base.Extra
+    Base.Json
+    Base.Paths
+    Base.Text
+    Coverage.Obligations.CborTerm
+    Coverage.Obligations.Divergence
+    Coverage.Obligations.LiteralValue
+    Coverage.Obligations.Obligation
+    Coverage.Obligations.Obligations
+    Coverage.Obligations.Primitive
+    Coverage.Obligations.Shape
+    Coverage.Obligations.SpecRule
+    Coverage.Obligations.Step
+    Coverage.Obligations.Trail
+    Coverage.Report.CoverageData
+    Coverage.Report.Measure
+    Coverage.Report.Regressions
+    Coverage.Report.Samples
+    Coverage.Report.SpecCoverage
+    Coverage.Report.TermChecker
+    Coverage.Report.CoveragePage
+    Generation.Dataset
+    Generation.DatasetConfig
+    Generation.EraSpec
+    Generation.Generate
+    Generation.GenerateCbor
+    Generation.GenerationChecks
+    Generation.GenerationRun
+    Generation.GenerationTarget
+    Generation.Normalize
+    Generation.Report
+    Generation.Rule
+    Generation.SampleType
+    Generation.VerificationFailure
+    Generation.Verify
+  ghc-options: -Wall -Wcompat
   build-depends:
     aeson,
     aeson-pretty,
@@ -22,37 +65,120 @@ executable cbor
     cardano-crypto-class,
     cardano-data,
     cardano-ledger-allegra,
+    cardano-base,
     cardano-ledger-alonzo,
-    cardano-ledger-binary,
-    cardano-ledger-conway:{cardano-ledger-conway, testlib},
+    cardano-ledger-babbage,
+    cardano-ledger-binary:{cardano-ledger-binary, testlib},
+    cardano-ledger-conway:{cardano-ledger-conway, cddl, testlib},
+    cardano-ledger-mary,
+    cardano-ledger-shelley,
+    cardano-strict-containers,
+    data-default,
     cardano-ledger-core:{cardano-ledger-core, testlib},
-    cardano-ledger-dijkstra:{cardano-ledger-dijkstra, testlib},
+    cardano-ledger-dijkstra:{cardano-ledger-dijkstra, cddl, testlib},
     cardano-protocol,
     cardano-protocol-tpraos:testlib,
     cborg,
     containers,
+    cuddle,
     directory,
+    either,
     filepath,
-    optparse-applicative,
+    monad-loops,
+    path,
+    path-io,
+    plutus-ledger-api,
+    pretty-simple >= 4.1 && < 4.2,
     process,
+    relude >= 1.2 && < 1.3,
     temporary,
     text,
-    unix
+    universum,
+    unix,
 
--- Checks the committed normalization vectors. It reaches into `app` for
--- `Normalize`, which depends only on `cborg`, so this builds without the ledger
--- packages the executable needs.
-test-suite normalization-vectors
-  type:             exitcode-stdio-1.0
-  main-is:          CheckVectors.hs
-  hs-source-dirs:   app test
-  other-modules:    Normalize
-  default-language: Haskell2010
+executable cbor
+  import:           language
+  main-is:          Main.hs
+  hs-source-dirs:   exe
   ghc-options:      -Wall -Wcompat
   build-depends:
     base,
+    cardano-cbor-dataset,
+    optparse-applicative,
+    path,
+    path-io,
+    relude >= 1.2 && < 1.3,
+    text
+
+-- Checks the committed normalization vectors against `Generation.Normalize`.
+test-suite normalization-vectors
+  import:           language
+  type:             exitcode-stdio-1.0
+  main-is:          CheckVectors.hs
+  hs-source-dirs:   test
+  ghc-options:      -Wall -Wcompat
+                    -Wno-unused-binds -Wno-unused-matches -Wno-unused-imports
+  build-depends:
+    base,
     bytestring,
+    cardano-cbor-dataset,
+    path,
+    path-io,
+    relude >= 1.2 && < 1.3,
+    text
+
+-- Sanity checks on the whole dataset, run before a new dataset is pushed. They read every sample, so they are slow and
+-- kept out of `just test`.
+test-suite integration
+  import:           language
+  type:             exitcode-stdio-1.0
+  main-is:          Integration.hs
+  hs-source-dirs:   test/integration
+  ghc-options:      -Wall -Wcompat
+                    -Wno-unused-binds -Wno-unused-matches -Wno-unused-imports
+                    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    async,
+    base,
+    cardano-cbor-dataset,
+    containers,
+    hspec >= 2.11 && < 3,
+    path-io,
+    relude >= 1.2 && < 1.3,
+    text
+
+test-suite unit
+  import:           language
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test/unit
+  -- List spec modules so HLS can load the discovered tests.
+  other-modules:
+    Coverage.Obligations.CborTermSpec
+    Coverage.Obligations.DivergenceSpec
+    Coverage.Obligations.ObligationsSpec
+    Coverage.Obligations.TrailSpec
+    Coverage.Report.CoveragePageSpec
+    Coverage.Report.MeasureSpec
+    Coverage.Report.RegressionsSpec
+    Coverage.Report.TermCheckerSpec
+    Generation.RuleSpec
+    Generation.VerifySpec
+  ghc-options:      -Wall -Wcompat -Wno-missing-home-modules
+                    -Wno-unused-binds -Wno-unused-matches -Wno-unused-imports
+                    -Wno-missing-signatures
+  build-tool-depends: hspec-discover:hspec-discover >= 2.11 && < 3
+  build-depends:
+    aeson,
+    base,
+    bytestring,
+    cardano-cbor-dataset,
     cborg,
-    directory,
-    filepath,
+    containers,
+    cuddle,
+    data-default,
+    hspec >= 2.11 && < 3,
+    path,
+    path-io,
+    relude >= 1.2 && < 1.3,
     text

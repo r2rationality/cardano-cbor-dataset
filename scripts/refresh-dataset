@@ -1,0 +1,43 @@
+#!/bin/sh
+# Regenerate the corpora, their conformance reports, and the coverage page.
+#
+# `generate` keeps the hand written samples of each corpus and its
+# `corpus.json`, and replaces a corpus only when the new one passes verification
+# and covers no less of the specification than the one it replaces.
+#
+# Eras to refresh, defaulting to every one the dataset carries. Naming one keeps
+# a working session to the era being changed: generation is the slow half, and
+# the other era's corpus is not affected by it. Generation runs the built binary
+# rather than `cabal run`, which would contend with a running tricorder for the
+# build lock.
+set -eu
+
+project=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$project"
+
+# Newest first: several builds leave a `cbor` behind, and an older one will not
+# know the options this script passes.
+binary=$(find dist-newstyle -name cbor -type f -perm -111 -exec ls -t {} + | head -1)
+[ -n "$binary" ] || { echo "build the cbor binary first" >&2; exit 1; }
+
+# `generate` calls `generate-cbor` through PATH. Use the one on PATH if there is
+# one, else the newest build in the ledger checkout, whatever the platform and
+# compiler directories of that build are.
+if ! command -v generate-cbor >/dev/null 2>&1; then
+  generator=$(find .cache/cardano-ledger/dist-newstyle -name generate-cbor -type f -perm -111 -exec ls -t {} + 2>/dev/null | head -1)
+  [ -n "$generator" ] || {
+    echo "build generate-cbor first: cabal build cardano-ledger-api:exe:generate-cbor in .cache/cardano-ledger" >&2
+    exit 1
+  }
+  PATH="$project/$(dirname -- "$generator"):$PATH"
+  export PATH
+fi
+
+for era in ${ERAS:-conway dijkstra}; do
+  echo "generating $era"
+  "$binary" generate --era "$era" dataset
+  python3 scripts/make-report.py "dataset/$era" "dataset/reports/$era/haskell-latest.json" \
+    > "dataset/reports/$era/haskell-latest.md"
+done
+
+"$binary" report dataset

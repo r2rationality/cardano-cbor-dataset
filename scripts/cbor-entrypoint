@@ -4,7 +4,7 @@ set -eu
 cbor=/usr/local/bin/cbor
 
 verify_usage() {
-  echo "Usage: verify {expected|deserialize} ERA DATASET"
+  echo "Usage: verify ERA DATASET"
 }
 
 if [ "${1-}" != "verify" ]; then
@@ -12,21 +12,16 @@ if [ "${1-}" != "verify" ]; then
   exec "$cbor" "$@"
 fi
 
-case "${2-}:${3-}" in
-  --help:|expected:--help|deserialize:--help) verify_usage; exit 0 ;;
+case "${2-}" in
+  --help) verify_usage; exit 0 ;;
 esac
 
 # The container accepts a fixed interface and supplies the results path.
-if [ "$#" -ne 4 ]; then
+if [ "$#" -ne 3 ]; then
   verify_usage >&2
   exit 2
 fi
-mode=$2
-dataset=$4
-case "$mode" in
-  expected|deserialize) ;;
-  *) verify_usage >&2; exit 2 ;;
-esac
+dataset=$3
 
 # Resolve relative paths before naming the corpus's published reports.
 dataset_root=$(realpath -e -- "$dataset")
@@ -42,7 +37,7 @@ coverage_root=${CBOR_COVERAGE_DIR:-/output/coverage}
 mkdir -p "$coverage_root"
 
 timestamp=$(date -u +%Y%m%dT%H%M%SZ)
-run_dir="$coverage_root/$dataset_name-$mode-$timestamp"
+run_dir="$coverage_root/$dataset_name-$timestamp"
 mkdir "$run_dir"
 failure_log="$run_dir/failures.log"
 tix_file="$run_dir/cbor.tix"
@@ -50,28 +45,24 @@ export HPCTIXFILE="$tix_file"
 
 json_path="$run_dir/haskell-results.json"
 markdown_path="$run_dir/haskell-report.md"
-if [ "$mode" = expected ]; then
-  set -- "$@" "$json_path"
-fi
+set -- "$@" "$json_path"
 
 verify_status=0
 "$cbor" "$@" 2> "$failure_log" || verify_status=$?
 
 markdown_status=0
-if [ "$mode" = expected ]; then
-  report_dir="$(dirname "$dataset_root")/reports/$dataset_name"
-  # Sample failures also produce JSON, so render independently of exit status.
-  # The JSON path belongs to this run; an aborted run cannot reuse older results.
-  if python3 "${CBOR_REPORT_SCRIPT:-/usr/local/bin/make-report.py}" \
-      "$dataset_root" "$json_path" > "$markdown_path" 2>> "$failure_log" \
-      && mkdir -p "$report_dir" \
-      && cp -- "$json_path" "$report_dir/haskell-latest.json" \
-      && cp -- "$markdown_path" "$report_dir/haskell-latest.md"; then
-    echo "Conformance report: $report_dir/haskell-latest.md"
-  else
-    echo "conformance report generation or publication failed; retained artifacts in $run_dir" >&2
-    markdown_status=1
-  fi
+report_dir="$(dirname "$dataset_root")/reports/$dataset_name"
+# Sample failures also produce JSON, so render independently of exit status.
+# The JSON path belongs to this run; an aborted run cannot reuse older results.
+if python3 "${CBOR_REPORT_SCRIPT:-/usr/local/bin/make-report.py}" \
+    "$dataset_root" "$json_path" > "$markdown_path" 2>> "$failure_log" \
+    && mkdir -p "$report_dir" \
+    && cp -- "$json_path" "$report_dir/haskell-latest.json" \
+    && cp -- "$markdown_path" "$report_dir/haskell-latest.md"; then
+  echo "Conformance report: $report_dir/haskell-latest.md"
+else
+  echo "conformance report generation or publication failed; retained artifacts in $run_dir" >&2
+  markdown_status=1
 fi
 
 coverage_status=0

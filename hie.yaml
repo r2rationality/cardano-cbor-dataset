@@ -3,8 +3,12 @@ cradle:
     cabalProject: "cabal.project"
     components:
       - path: "app"
+        component: "cardano-cbor-dataset:lib:cardano-cbor-dataset"
+      - path: "exe"
         component: "cardano-cbor-dataset:exe:cbor"
       - path: "test/unit"
         component: "cardano-cbor-dataset:test:unit"
+      - path: "test/integration"
+        component: "cardano-cbor-dataset:test:integration"
       - path: "test/CheckVectors.hs"
         component: "cardano-cbor-dataset:test:normalization-vectors"
