@@ -1,20 +1,21 @@
 -- | Raw per-sample verification results.
-module Report (
-  Reason,
-  FailureKind (..),
-  formatReason,
-  writeResults,
-) where
+module Report
+  ( Reason,
+    FailureKind (..),
+    formatReason,
+    writeResults,
+  )
+where
 
 import Data.Aeson (Value (Bool), object, toJSON, (.=))
-import Data.Aeson.Encode.Pretty (
-  Config (confCompare, confIndent, confTrailingNewline),
-  Indent (Spaces),
-  defConfig,
-  encodePretty',
- )
-import qualified Data.Aeson.Key as Key
-import qualified Data.ByteString.Lazy as BL
+import Data.Aeson.Encode.Pretty
+  ( Config (confCompare, confIndent, confTrailingNewline),
+    Indent (Spaces),
+    defConfig,
+    encodePretty',
+  )
+import Data.Aeson.Key qualified as Key
+import Data.ByteString.Lazy qualified as BL
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (takeDirectory)
 
@@ -57,7 +58,7 @@ writeResults jsonPath results = do
     outcomeValue (Left reason) = toJSON $ formatReason reason
     configuration =
       defConfig
-        { confIndent = Spaces 2
-        , confCompare = compare
-        , confTrailingNewline = True
+        { confIndent = Spaces 2,
+          confCompare = compare,
+          confTrailingNewline = True
         }

@@ -3,28 +3,28 @@
 -- | Filesystem checks shared by the commands that read or publish trees of
 -- CBOR files. Every check refuses symbolic links, so a corpus cannot smuggle
 -- reads or writes outside the directory it names.
-module Paths (
-  listDirectoryChecked,
-  publishDirectory,
-  requireCBORFile,
-  requireRealDirectory,
-) where
+module Paths
+  ( listDirectoryChecked,
+    publishDirectory,
+    requireCBORFile,
+    requireRealDirectory,
+    corpusConfigName,
+  )
+where
 
 import Control.Exception (IOException, onException, try)
-import Data.List (sort)
 import System.Directory (listDirectory, makeAbsolute, removePathForcibly, renameDirectory)
-import System.Exit (die)
 import System.FilePath (isAbsolute, takeDirectory, takeExtension, takeFileName)
 import System.IO.Error (isDoesNotExistError)
 import System.IO.Temp (createTempDirectory)
-import System.Posix.Files (
-  FileStatus,
-  getSymbolicLinkStatus,
-  isDirectory,
-  isRegularFile,
-  isSymbolicLink,
-  setFileMode,
- )
+import System.Posix.Files
+  ( FileStatus,
+    getSymbolicLinkStatus,
+    isDirectory,
+    isRegularFile,
+    isSymbolicLink,
+    setFileMode,
+  )
 
 -- | 'Nothing' when the path does not exist; any other failure to inspect it is
 -- fatal, since carrying on would treat an unreadable path as an absent one.
@@ -115,3 +115,11 @@ publishDirectory destination build = do
   result <- (setFileMode staging 0o755 >> build staging) `onException` cleanup
   renameDirectory staging destination `onException` cleanup
   pure result
+
+-- | What a corpus keeps its generation parameters in.
+--
+-- Inside the corpus rather than beside it, because two eras need not be
+-- generated the same way. It carries the waivers too: a waiver changes what a
+-- run asks of the corpus, so it belongs with everything else that does.
+corpusConfigName :: FilePath
+corpusConfigName = "corpus.json"

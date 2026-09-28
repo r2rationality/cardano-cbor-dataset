@@ -157,7 +157,7 @@ FROM builder AS vector-check
 ARG CABAL_JOBS=8
 
 COPY test/ cbor-dataset/test/
-COPY normalization-vectors/ cbor-dataset/normalization-vectors/
+COPY dataset/normalization/ cbor-dataset/dataset/normalization/
 
 RUN printf '%s\n' \
       'tests: True' \
@@ -177,7 +177,7 @@ RUN --mount=type=cache,id=cbor-blinklabs-9.6.7-3.12.1.0-3-store,target=/root/.ca
       cardano-cbor-dataset:test:normalization-vectors \
     && check="$(cabal list-bin cardano-cbor-dataset:test:normalization-vectors | tail -n 1)" \
     && test -x "$check" \
-    && "$check" cbor-dataset/normalization-vectors
+    && "$check" cbor-dataset/dataset/normalization
 
 FROM ${HASKELL_IMAGE} AS runtime
 
