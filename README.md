@@ -17,6 +17,156 @@ the data.
 They are node implementors who want to generate conformance reports and attest that their node implementation decodes
 all the test data correctly.
 
+## Local development with Flox
+
+The Flox environment provides GHC 9.6.7, Haskell Language Server (HLS),
+Cabal, and [Tricorder](https://github.com/tweag/tricorder).
+GHC and HLS 2.10.0.0 come from the same pinned Nixpkgs revision.
+HLS uses the GHC 9.6.7 package set to match the compiler in `Dockerfile`.
+The manifest uses Nix flake references because the Flox catalog does not expose this HLS package.
+The environment supports Apple Silicon macOS and x86-64 Linux.
+
+From the repository root, activate the environment:
+
+```sh
+flox activate
+ghc --version
+haskell-language-server-wrapper --version
+tricorder --help
+```
+
+The first successful activation downloads the packages and updates `.flox/env/manifest.lock`.
+Commit that lock file to keep the same package versions across machines.
+The activation hook installs the official Tricorder 0.4.1.1 binary in the Flox environment cache.
+It checks the download against a pinned SHA-256 checksum and reuses the binary on later activations.
+Flox provides the runtime libraries. The installer adapts the binary to use those libraries.
+This avoids the builds that the upstream Tricorder flake requires during package resolution.
+
+For VSCode, install the recommended `haskell.haskell` extension.
+The workspace configuration uses `scripts/hls-local` to start HLS through Flox.
+HLS loads application and test components together because they share source modules.
+Flox provides `hspec-discover` so HLS can load the test driver.
+Make sure that VSCode has `flox` on its `PATH`.
+You can start VSCode from the activated terminal with `code .`.
+
+Flox installs Ormolu as the Haskell formatter.
+In VSCode, open a Haskell file and select **Format Document** to format that file.
+The Haskell extension runs Ormolu through HLS in the Flox environment.
+After a formatter change, run **Haskell: Restart Haskell LSP Server** from the command palette.
+
+To format one file from a terminal, run `scripts/format app/Main.hs`.
+To format this package, including its tests, run `scripts/format`.
+To check formatting without changes, run `scripts/format --check`.
+You can also pass file paths to the check command.
+Ormolu checks that formatting preserves the syntax tree and produces stable output.
+
+VSCode also provides **Ormolu: Format current file**, **Ormolu: Format project**,
+and **Ormolu: Check formatting** under **Tasks: Run Task**.
+Save your files before you run these tasks.
+The tasks activate Flox themselves.
+
+The project also needs the Cardano Ledger checkout at `.cache/cardano-ledger`
+and the native Cardano libraries at `.cache/native`.
+These are separate from the tools that Flox installs.
+The environment uses the existing native libraries when that directory exists.
+The required source revisions are in `Dockerfile`.
+For a fresh checkout without these dependencies, use the Docker build described in the next section.
+
+The root `cabal.project` defines the local build.
+It imports `cabal.project.ledger`, which pins the dependency settings from Cardano Ledger.
+It uses source packages from `.cache/cardano-ledger`, without its `cabal.project.local` settings.
+The existing `hie.yaml` points HLS to this root project.
+Tricorder uses the same Cabal project and watches `app` and `test`.
+
+To build the executable inside the activated environment, run:
+
+```sh
+cabal build cardano-cbor-dataset:exe:cbor
+```
+
+To open Tricorder, run:
+
+```sh
+tricorder ui
+```
+
+The project wrapper prepares dependencies before `tricorder ui`, `tricorder start`, or `tricorder restart`.
+This preparation prints build errors directly and has no Tricorder startup limit.
+Tricorder 0.4.1.1 otherwise waits only 60 seconds for GHCi to start, which can interrupt a first dependency build.
+After a dependency change, run `tricorder restart` to prepare the updated dependencies.
+
+VSCode and Tricorder can run together in this repository.
+HLS uses its `hie-bios` build cache. Tricorder uses `.cache/tricorder-build`.
+The test command uses `dist-newstyle`, so its compiler output cannot conflict with Tricorder's output.
+Both tools use the Flox compiler and the same Cabal project.
+On macOS, Flox sets the compiler wrapper's platform-specific deployment target for all builds, including dependencies.
+The target defaults to the current macOS version. After this setting changes, reactivate Flox and restart Tricorder or HLS.
+Tricorder ignores personal `.ghci` files so that prompt and output changes do not affect its parser.
+Tricorder 0.4.1.1 starts expression evaluation without the arguments from `session.command`.
+The wrapper gives its child processes a Cabal launcher that supplies the root project for evaluation too.
+This launcher does not change the Cabal command that HLS or your shell uses.
+It loads `scripts/tricorder-tools/ghci.conf`, which makes warnings nonfatal for interactive evaluation only.
+Type-default warnings are also disabled, so expressions such as `-- $> 1 + 1` need no type annotation.
+Source modules retain their normal warning settings, including warnings as errors.
+On macOS, the wrapper sets `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` for Tricorder and its child processes.
+This works around an Objective-C runtime abort during daemon startup in release 0.4.1.1.
+It disables that runtime check for these processes, so it remains a workaround for an upstream startup defect.
+HLS checks open files, including unfinished drafts. Tricorder checks the executable and test components.
+To include a new module in the executable, add its module name to `other-modules` in `cardano-cbor-dataset.cabal`.
+
+To inspect a failure outside the UI, run `tricorder status` and `tricorder log`.
+The direct Cabal build prints compiler errors without the Tricorder startup limit.
+
+To stop the Tricorder daemon, run `tricorder stop`.
+Run `scripts/test` to run the Conway unit tests and the normalization vectors locally.
+Run `scripts/check-normalization-vectors` to check the normalization vectors through Docker.
+
+Unit tests use [Hspec discovery](https://hspec.github.io/hspec-discover.html).
+Add a file ending in `Spec.hs` under `test/unit`, with a matching module name and an exported `spec :: Spec`.
+Add each spec module to the unit suite’s `other-modules` so HLS can locate it.
+Hspec discovers the tests without a manual test-runner list.
+It refreshes the discovery driver before each run, so newly added files cannot escape an incremental build.
+Both test suites disable unused binding, argument, and import warnings.
+The unit suite also disables the missing-module-list warning.
+The `extra-source-files` glob includes them in source archives. Other source warnings remain errors under the root project.
+The root project enables this package's tests, so HLS can load them through `hie.yaml`.
+
+From the repository root in an activated Flox environment, run:
+
+```sh
+cabal test
+```
+
+For unit tests only, run `cabal test cardano-cbor-dataset:test:unit`.
+After adding a new spec file, run `touch test/unit/Spec.hs` before Cabal to refresh discovery.
+The `scripts/test` command does this automatically.
+
+Tricorder discovers the package's Cabal test suites and runs them after a clean build.
+It watches both `app` and `test`. `tricorder test-results` shows the results outside the UI.
+New `*Spec.hs` files under `test/unit` trigger discovery and a test run without a daemon restart.
+New test suites need no entry in `.tricorder.yaml`.
+For a filtered unit run, use:
+
+```sh
+scripts/test --unit --test-options='--match "Conway reachability"'
+```
+
+The executable and both test suites use [Relude](https://github.com/kowainik/relude#mixins) as their default prelude.
+Cabal renames `Relude` to `Prelude` through `mixins`, so new modules need no explicit `import Relude`.
+HLS and Tricorder use these same Cabal settings.
+Use `readMaybe` for parsing that can fail. Relude also provides common types such as `Text`, `Map`, and `Set`.
+
+For multiline output in HLS evaluation comments, use `prettyEval` from `app/Eval.hs`.
+`Reachability` reexports this helper, so its comments need only one expression:
+
+```haskell
+-- >>> prettyEval (eraReachability "conway" ["TransactionBody"])
+```
+
+The helper formats any `Show` value without color codes.
+It deliberately throws the formatted text as an exception because HLS 2.10 does not capture standard output.
+Use it only for interactive evaluation.
+
 ## Cardano CBOR dataset for maintainers
 
 ### Data generation
@@ -45,13 +195,15 @@ The output will be in the host's `$PWD/dataset/dijkstra`:
 #### Generation parameters
 
 `generate --era ERA OUTPUT_DIR` requires an existing writable output directory, and reads how much to generate from
-`--config FILE`, which defaults to `dataset/corpus.json`:
+the `corpus.json` the corpus itself carries, `dataset/conway/corpus.json` for Conway:
 
 ```json
 {
   "seed": 123,
   "samples": 100,
-  "rules": {}
+  "rules": {
+    "%constr<plutus_data>": 800
+  }
 }
 ```
 
@@ -60,6 +212,16 @@ The output will be in the host's `$PWD/dataset/dijkstra`:
  - `rules` raises or lowers that for named rules. Rules do not all need the same number: a union of a hundred and
    twenty nine alternatives needs far more samples than a pair of bytes before every branch has been seen, and one
    count in a directory name cannot say so.
+
+Each era keeps its own file, because two eras need not be generated the same way: a rule that exists in one and not
+the other, or that needs more samples in one, has nowhere to be said in a shared file. The generator writes the file
+back out into the corpus it produces, so a corpus always leaves with the parameters that made it, and regenerating it
+starts from the same place. `--config FILE` names a different one, which is what to use when generating into a staging
+directory that has no corpus of its own yet.
+
+`--only RULE` generates a single rule, repeatable, which is what to use when adding one root rather than rebuilding
+the corpus. `--adopt-manual CORPUS_DIR` carries the hand written `manual-valid` and `manual-invalid` directories over
+from an existing corpus, which generation would otherwise not reproduce.
 
 For each rule the generator produces one batch of CDDL samples and one batch per mutation severity. Each batch receives
 an attempt budget of three times its requested count. If the budget cannot produce enough unique samples, the final

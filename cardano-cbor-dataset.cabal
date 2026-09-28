@@ -2,17 +2,30 @@ cabal-version: 3.0
 name:          cardano-cbor-dataset
 version:       0.1.0.0
 build-type:    Simple
+extra-source-files: test/unit/**/*.hs
 
 executable cbor
   main-is:          Main.hs
   hs-source-dirs:   app
   other-modules:
+    CborTerm
+    CoverageReport
     Corpus
+    Eval
     LedgerRules
     Normalize
+    Obligations
+    ObligationCoverage
     Paths
+    Reachability
     Report
-  default-language: Haskell2010
+    HuddleRule
+  default-language: GHC2021
+  default-extensions:
+    LambdaCase,
+    OverloadedStrings,
+    BlockArguments,
+  mixins:          base hiding (Prelude), relude (Relude as Prelude), relude
   ghc-options:      -Wall -Wcompat
   build-depends:
     aeson,
@@ -22,19 +35,27 @@ executable cbor
     cardano-crypto-class,
     cardano-data,
     cardano-ledger-allegra,
+    cardano-base,
     cardano-ledger-alonzo,
-    cardano-ledger-binary,
-    cardano-ledger-conway:{cardano-ledger-conway, testlib},
+    cardano-ledger-babbage,
+    cardano-ledger-binary:{cardano-ledger-binary, testlib},
+    cardano-ledger-conway:{cardano-ledger-conway, cddl, testlib},
+    cardano-ledger-mary,
+    cardano-ledger-shelley,
+    cardano-strict-containers,
     cardano-ledger-core:{cardano-ledger-core, testlib},
-    cardano-ledger-dijkstra:{cardano-ledger-dijkstra, testlib},
+    cardano-ledger-dijkstra:{cardano-ledger-dijkstra, cddl, testlib},
     cardano-protocol,
     cardano-protocol-tpraos:testlib,
     cborg,
     containers,
+    cuddle,
     directory,
     filepath,
     optparse-applicative,
+    pretty-simple >= 4.1 && < 4.2,
     process,
+    relude >= 1.2 && < 1.3,
     temporary,
     text,
     unix
@@ -47,12 +68,72 @@ test-suite normalization-vectors
   main-is:          CheckVectors.hs
   hs-source-dirs:   app test
   other-modules:    Normalize
-  default-language: Haskell2010
+  default-language: GHC2021
+  default-extensions:
+    LambdaCase,
+    OverloadedStrings,
+    BlockArguments,
+  mixins:          base hiding (Prelude), relude (Relude as Prelude), relude
   ghc-options:      -Wall -Wcompat
+                    -Wno-unused-binds -Wno-unused-matches -Wno-unused-imports
   build-depends:
     base,
     bytestring,
     cborg,
     directory,
     filepath,
+    relude >= 1.2 && < 1.3,
     text
+
+test-suite unit
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test/unit app
+  other-modules:
+    CborTermSpec
+    CoverageReportSpec
+    ObligationCoverageSpec
+    ObligationsSpec
+    Reachability.EraSpec
+    Reachability.RootsSpec
+    Reachability.StatsSpec
+    ReachabilitySpec
+    CborTerm
+    CoverageReport
+    Eval
+    HuddleRule
+    ObligationCoverage
+    Obligations
+    Paths
+    Reachability
+  default-language: GHC2021
+  default-extensions:
+    LambdaCase,
+    OverloadedStrings,
+    BlockArguments,
+  default-extensions: ImportQualifiedPost
+
+  mixins:          base hiding (Prelude), relude (Relude as Prelude), relude
+  -- List spec modules so HLS can load the discovered tests.
+  ghc-options:      -Wall -Wcompat -Wno-missing-home-modules
+                    -Wno-unused-binds -Wno-unused-matches -Wno-unused-imports
+  build-tool-depends: hspec-discover:hspec-discover >= 2.11 && < 3
+  build-depends:
+    base,
+    cardano-ledger-binary:testlib,
+    cardano-ledger-conway:cddl,
+    cardano-ledger-dijkstra:cddl,
+    bytestring,
+    aeson,
+    aeson-pretty,
+    cborg,
+    containers,
+    cuddle,
+    directory,
+    filepath,
+    hspec >= 2.11 && < 3,
+    pretty-simple >= 4.1 && < 4.2,
+    relude >= 1.2 && < 1.3,
+    temporary,
+    text,
+    unix
