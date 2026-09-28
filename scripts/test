@@ -5,10 +5,12 @@ project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$project_dir"
 # Re-run discovery even when a new spec is not in GHC's previous import graph.
 touch test/unit/Spec.hs
-target=cardano-cbor-dataset:tests
-if [ "${1:-}" = --unit ]; then
-  target=cardano-cbor-dataset:test:unit
-  shift
-fi
+# The integration suite reads the whole dataset and is run on its own, before a dataset is pushed.
+targets="cardano-cbor-dataset:test:unit cardano-cbor-dataset:test:normalization-vectors"
+case "${1:-}" in
+  --unit) targets=cardano-cbor-dataset:test:unit; shift ;;
+  --integration) targets=cardano-cbor-dataset:test:integration; shift ;;
+esac
+# shellcheck disable=SC2086
 exec flox activate -d "$project_dir" -- cabal test \
-  "$target" --enable-tests --test-show-details=direct "$@"
+  $targets --enable-tests --test-show-details=direct "$@"

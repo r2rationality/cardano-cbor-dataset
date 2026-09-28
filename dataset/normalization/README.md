@@ -1,7 +1,7 @@
 # Shape normalization vectors
 
 One `.input.cbor` / `.expected.cbor` pair per case. An independent normalizer is correct on this set when `normalize(<n>.input.cbor)`
-is byte-identical to `<n>.expected.cbor` for every pair. The specification these pin down is in the repository README.
+is byte-identical to `<n>.expected.cbor` for every pair. The specification these pin down is in [VERIFICATION.md](../../VERIFICATION.md#normalization).
 
 The hex below is the reviewable form of the same bytes, and it is the authority: the committed files were checked
 against this table by hand rather than taken on trust from the reference implementation.
@@ -15,13 +15,13 @@ against this table by hand rather than taken on trust from the reference impleme
 | 5   | nested-indefinite   | `9f9f01ffbf0102ffff` | `828101a10102`       | The rewrite is recursive                        |
 | 6   | empty-indef-array   | `9fff`               | `80`                 | The empty case still rewrites                   |
 | 7   | empty-indef-map     | `bfff`               | `a0`                 | The empty case still rewrites                   |
-| 8   | non-minimal-int     | `1805`               | `05`                 | Heads are minimised                             |
+| 8   | non-minimal-int     | `1805`               | `05`                 | Heads are minimized                             |
 | 9   | unsorted-map-keys   | `a202010102`         | `a202010102`         | Key order is observable in Cardano, so it stays |
 | 10  | duplicate-map-keys  | `a201020103`         | `a201020103`         | Duplicate keys are content, not form            |
 | 11  | uint-2^64-1         | `1bffffffffffffffff` | `1bffffffffffffffff` | The top of `uint64` must not become a bignum    |
 | 12  | tag-30-rational     | `d81e820102`         | `d81e820102`         | A known tag survives                            |
 | 13  | tag-259-map         | `d90103a10102`       | `d90103a10102`       | A tag wrapping a definite map survives          |
-| 14  | unknown-tag-1295    | `d9050f01`           | `d9050f01`           | An unrecognised tag number survives             |
+| 14  | unknown-tag-1295    | `d9050f01`           | `d9050f01`           | An unrecognized tag number survives             |
 | 15  | tag-over-indefinite | `d81e9f0102ff`       | `d81e820102`         | The rewrite reaches inside a tag                |
 | 16  | float16             | `f93c00`             | `f93c00`             | Float widths are never shortened                |
 | 17  | bignum-fits         | `c24296be`           | `1996be`             | The basic fold to a native head                 |

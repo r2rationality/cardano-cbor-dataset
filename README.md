@@ -1,14 +1,13 @@
 # Cardano CBOR dataset
 
-This project generates deterministic CBOR corpora for Conway and Dijkstra eras
-from the Cardano Ledger Huddle/CDDL generator. This test data can be used by any Cardano node implementation
-to check its conformance with respect to the decoding of on chain data.
+This project generates deterministic CBOR corpora for Conway and Dijkstra eras from the Cardano Ledger Huddle/CDDL generator.
+This test data can be used by any Cardano node implementation to check its conformance with respect to the decoding of on-chain data.
 
 The two intended users for this project are:
 
  1. Dataset maintainers
 
-They are responsible for making sure that the latest generated data covers as much as possible of the CDDL specification
+They are responsible for making sure that the latest generated data covers as much as possible of the specification
 for Cardano data but also any edge cases that could see different node implementations diverge in their decoding of
 the data.
 
@@ -17,187 +16,250 @@ the data.
 They are node implementors who want to generate conformance reports and attest that their node implementation decodes
 all the test data correctly.
 
+## How the dataset is made
+
+The `cbor` executable of this project builds and checks each corpus in five steps:
+
+ 1. **Generation.** `generate-cbor`, an executable of the Cardano Ledger, produces random CBOR values for a rule of the
+    era's HuddleSpec, the Haskell form of the CDDL specification. It also produces mutated values, named "zaps".
+ 2. **Classification.** The Haskell node decoder of the rule decides where each value goes: `valid` when it decodes,
+    `invalid-zap-<n>` when it is refused. Hand-written samples go in `manual-valid` and `manual-invalid`.
+ 3. **Verification.** `cbor verify` checks that the Haskell node decodes or refuses every sample as its directory says,
+    and that each accepted sample re-encodes to its `.expected.cbor` file.
+ 4. **Coverage.** `cbor generate` derives obligations from the specification, for example "a map with a duplicate key
+    must be refused", and checks that samples meet each of them. The result is saved in `<era>/coverage.json`.
+ 5. **Reporting.** `cbor report` writes an HTML page from the `coverage.json` files, and `scripts/make-report.py`
+    writes a Markdown summary of each verification.
+
+The details are in [GENERATION.md](GENERATION.md), [VERIFICATION.md](VERIFICATION.md) and [COVERAGE.md](COVERAGE.md).
+
 ## Cardano CBOR dataset for maintainers
 
-### Data generation
+### Installation
 
-From the repository root, create a writable `dataset` directory and build the image:
+You can either use the provided `flox` environment (see [DEVELOPMENT.md](DEVELOPMENT.md)) or build the `cbor` executable
+with Docker.
+From the repository root build the `cbor` image:
 ```
 docker build --platform=linux/amd64 -t cbor .
 ```
 
-Generate one hundred Conway samples for every rule/category combination with seed `123`:
+Then you can run `cbor` commands with Docker:
+```
+docker run --rm --platform=linux/amd64 cbor --help
+docker run --rm --platform=linux/amd64 cbor list-eras
+docker run --rm --platform=linux/amd64 cbor list-rules --era conway
+```
+
+### Generate data
+
+Create a writable `dataset` directory and generate samples for the Conway era:
 ```
 docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor generate --era conway /output
 ```
-The output will be in the host's `$PWD/dataset/conway`.
 
-Generate one hundred Dijkstra samples for every rule/category combination with seed `123`:
+In the other examples on this page, we will omit the Docker part of the command:
 ```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor generate --era dijkstra /output
+cbor generate --era conway /output
 ```
-The output will be in the host's `$PWD/dataset/dijkstra`:
 
- - Every `*.input.cbor` file under `valid` must deserialize, and its normalized re-serialization must equal the
-   `*.expected.cbor` file beside it. There is one such file for every `valid` sample.
- - Every `*.input.cbor` file under an `invalid-zap-<n>` directory must be rejected, whichever severity it sits at.
+The output will be in the host directory: `$PWD/dataset/conway`.
 
-#### Generation parameters
+The Docker image contains `generate-cbor`. When you run the `cbor` binary outside Docker, `generate` calls
+`generate-cbor` through `PATH`, so you must build it first (see [DEVELOPMENT.md](DEVELOPMENT.md)).
 
-`generate --era ERA OUTPUT_DIR` requires an existing writable output directory, and reads how much to generate from
-`--config FILE`, which defaults to `dataset/corpus.json`:
+The options for the `generate` command are
 
+| Option                   | Description                                                                          |
+|--------------------------|--------------------------------------------------------------------------------------|
+| `--era ERA`              | `conway` or `dijkstra`.                                                              |
+| `--config FILE`          | A configuration file, see [Generation configuration](#generation-configuration).     |
+| `--only RULE`            | Only generate data for this rule. Repeat the option for several rules.               |
+| `--no-verify`            | Do not verify the new corpus before it replaces the previous one.                    |
+| `--no-coverage-check`    | Do not measure the specification coverage of the new corpus.                         |
+| `--accept-coverage-loss` | Replace the previous corpus even if the new one covers less of the specification.    |
+| `<OUTPUT>`               | The output directory (argument).                                                     |
+
+The corpus is built in a staging directory next to `<OUTPUT>/<era>`, then checked:
+
+ 1. `verify` checks every sample (see [Verification](#verification)).
+ 2. The coverage of the specification is measured and written to `<OUTPUT>/<era>/coverage.json`.
+    If the corpus already exists, the new measurement must not lose coverage against its `coverage.json`.
+
+The new corpus replaces `<OUTPUT>/<era>` only if both checks pass. Then the verification results are written to
+`<OUTPUT>/reports/<era>/haskell-latest.json`.
+
+When `<OUTPUT>/<era>` already exists, `generate` regenerates it in place:
+
+ - The `manual-valid` and `manual-invalid` samples of every rule are kept.
+ - With `--only`, the rules that are not named are kept unchanged.
+ - Without `--config`, the `corpus.json` of the existing corpus is used.
+
+See [COVERAGE.md](COVERAGE.md) and [Coverage reporting](#coverage-reporting) for more information about the dataset
+coverage.
+
+#### Generation configuration
+
+The parameters driving the generation are read from a json file named `corpus.json` located inside the dataset directory.
+For example `dataset/conway/corpus.json` for the `conway` dataset.
+If there is no corpus yet and no `config` option, `generate` uses default parameters and writes them to `corpus.json`.
+
+The `corpus.json` file contains the following fields:
 ```json
 {
   "seed": 123,
   "samples": 100,
-  "rules": {}
+  "rules": {
+    "%constr<plutus_data>": 800
+  },
+  "divergences": [
+    {
+      "kind": "verified-by-parent",
+      "rule": "certificates",
+      "path": "validator.gen.choice[0:tag258].tag258",
+      "obligation": {"tag": "TooFew", "contents": 1},
+      "samples": ["certificates/manual-invalid/bare-empty"],
+      "reason": "OSet decodes an empty set. The transaction body decoder refuses it at key 4."
+    }
+  ]
 }
 ```
 
  - `seed` is the non-negative decimal seed every rule's sample stream is derived from.
- - `samples` is how many samples each rule gets in each category, from 1 through 99999.
- - `rules` raises or lowers that for named rules. Rules do not all need the same number: a union of a hundred and
-   twenty nine alternatives needs far more samples than a pair of bytes before every branch has been seen, and one
-   count in a directory name cannot say so.
+ - `samples` is how many samples each rule gets in each generated category (`valid`, `invalid-zap-<n>`).
+ - `rules` is an optional field that can be used to modify the number of samples for specific rules.
+ - `zapGiveUpAfter` is optional, 3 by default. For a mutated (`invalid-zap-<n>`) category, the generator can report
+   that a rule has too few decision points to mutate. After this number of such batches without a single sample,
+   generation gives up on the category instead of spending its whole budget of attempts.
+ - `batchSize` is optional, 128 by default. It is the largest number of samples asked from `generate-cbor` in one
+   call. Each call loads the specification again, so larger batches make fewer calls.
+ - `divergences` is an optional list of the places where the Haskell node and the specification disagree (see
+   [Divergences](#divergences)).
 
-For each rule the generator produces one batch of CDDL samples and one batch per mutation severity. Each batch receives
-an attempt budget of three times its requested count. If the budget cannot produce enough unique samples, the final
-summary reports the shortfall.
+##### Divergences
 
-Every sample is then decoded, and where it lands follows from that. A CDDL sample the Haskell decoder accepts goes to
-`valid`; one it rejects goes to `invalid-zap-0`, since satisfying the CDDL is not the same as being decodable. A
-mutation goes to `invalid-zap-<n>` at its severity, unless the decoder accepts it, in which case it is dropped and
-reported: a mutation that decodes tests nothing, because the corpus would be demanding a rejection that is correct not
-to happen.
+A divergence records a place where the Haskell node and the specification disagree, and why. Its fields are:
 
-The generator then writes one `.expected.cbor` file per `valid` sample, beside it and under the same name. The sample
-decoded with the Haskell decoder, is re-encoded and normalized by the rules below (see the Normalization section).
-Every `valid` sample has one, which is what makes `valid` mean valid.
+ - `kind`: how they disagree. The kind decides which other fields the divergence needs:
 
-For the rules whose bytes are hashed, listed further down, the `.expected.cbor` file is the re-encoding **without**
-normalization. There the container form is part of the format, so normalizing the reference would discard the very
-thing it exists to pin down. Those files therefore hold the bytes an implementation must reproduce exactly, and in
-practice equal the `.input.cbor` bytes.
+   | Kind                      | Specification | Node    | `rule`, `path`, `obligation` | `samples`      |
+   | ------------------------- | ------------- | ------- | ---------------------------- | -------------- |
+   | `verified-by-parent`      | refuses       | accepts | required                     | manual-invalid |
+   | `incorrect-specification` | refuses       | accepts | required                     | manual-valid   |
+   | `decoder-exception`       | accepts       | refuses | none                         | manual-invalid |
+   | `unstated-constraint`     | accepts       | refuses | optional                     | manual-invalid |
 
-Batch seeds and filenames are derived with SHA-256, so identical pinned inputs produce the same corpus.
-The ledger revision and native crypto revisions are pinned in the Dockerfile.
+   - `verified-by-parent`: another decoder enforces the constraint, for example the decoder of the transaction body.
+     A decoder for the rule can check the constraint directly, so the samples are in `manual-invalid`. The Haskell
+     decoder of the rule accepts them, and `verify` checks that it does.
+   - `incorrect-specification`: nothing enforces the constraint, and the specification is wrong to ask for it.
+   - `decoder-exception`: the decoder raises an exception rather than a decode error. The node refuses the bytes all
+     the same, and `verify` counts the exception as a refusal.
+   - `unstated-constraint`: the decoder checks a condition that the specification does not state, for example a
+     denominator that is not zero. When the condition refuses a form that an obligation asks the node to accept, such
+     as an indefinite array, the divergence names that obligation and settles it.
+ - `rule`: the rule that states the obligation.
+ - `path`: where the rule states the obligation, written as the coverage report writes it, for example
+   `validator.gen.choice[0:tag258].tag258` (see [Paths](COVERAGE.md#paths)).
+ - `obligation`: the obligation that the divergence settles, in its JSON form, for example
+   `{"tag": "TooFew", "contents": 1}` for "fewer than 1 entry".
+ - `samples`: at least one manual sample that shows the divergence, named `<rule>/<sample type>/<stem>`, for example
+   `certificates/manual-invalid/bare-empty`. The kind decides the sample type (see the table above).
+ - `reason`: why the node and the specification disagree. The coverage report shows it.
 
-####  Output layout
+The coverage report gives a waived obligation the verdict **Waived**, not **Outstanding** (see
+[COVERAGE.md](COVERAGE.md#how-coverage-is-checked)), and lists every divergence with its reason.
 
+The measurement also compares the divergences with the manual samples. A manual-invalid sample that meets no obligation
+to reject of its rule is one that the specification accepts. A manual-valid sample that meets one is one that the
+specification refuses. The run stops if such a sample has no divergence, if a divergence names a sample that the
+specification does not judge as its kind says, or if a divergence names an obligation that its rule does not state.
+`verify` fails if a divergence names a sample that does not exist.
+
+An implementation never needs `corpus.json` to run the samples: `valid` and `manual-valid` samples must decode, and the
+others must be refused. The directory says what the Haskell node does, except for a constraint verified by a parent,
+where it says what a decoder for the rule must do. Only the verification of the Haskell node reads the divergences.
+
+#### Manual samples
+
+An edge case might be difficult to generate, either because the Huddle generator is not set up to target that case or it
+might take a great number of samples to generate it.
+
+In this situation we can add individual samples in the `manual-valid` and `manual-invalid` directories for a given rule.
+For example `conway/voting_procedures/manual-invalid/empty.input.cbor` contains an example of
+`voting_procedures` with an empty map.
+
+#### Coverage reporting
+
+`generate` measures the coverage of each corpus and writes it to `<era>/coverage.json`, inside the corpus.
+For each rule, it derives "obligations" (see [COVERAGE.md](COVERAGE.md)) then checks if there is at least one sample
+validating the
+obligation.
+
+The `report` command creates an HTML page from the `coverage.json` file of every corpus under `DATASET_DIR`.
+It does not measure anything, so it is fast:
+```sh
+cbor report /output --page /output/reports/coverage.html
 ```
-dataset/<era>-<seed>-<count>/
-  <rule>/
-    valid/00001-<sha256-prefix>.input.cbor
-    valid/00001-<sha256-prefix>.expected.cbor
-    invalid-zap-0/00001-<sha256-prefix>.input.cbor
-    invalid-zap-1/00001-<sha256-prefix>.input.cbor
-    invalid-zap-2/00001-<sha256-prefix>.input.cbor
-    invalid-zap-3/00001-<sha256-prefix>.input.cbor
-```
 
-The layout is built around a runner that walks the corpus once:
+The default page is `dataset/reports/coverage.html`.
 
- - A test input is any `*.input.cbor` file, so a single recursive scan finds every one of them.
- - What it must do follows from the name of the directory holding it: a sample is expected to decode when, and only
-   when, that directory is named `valid`. Every other directory holds samples that must be rejected, and names the
-   severity in `invalid-zap-<n>` rather than nesting one more level.
- - The reference for a sample is its own path with `.input.cbor` replaced by `.expected.cbor`, so a runner derives it
-   instead of looking it up in a parallel directory, and needs no second path argument.
+#### Coverage regressions
 
-Severity zero is the one that is not a mutation: it holds the generator's own samples, unaltered, that the decoder
-rejects. The higher severities hold mutations of increasing aggressiveness. Each directory numbers its files from
-`00001` independently.
+A regression is coverage lost: some existing obligations aren't fulfilled any more.
+If we derive a new obligation that isn't fulfilled yet by any sample, this is not a regression.
 
-A severity directory can be missing. The generator creates all four, but leaves one empty for a rule whose mutations
-the decoder never rejects, and version control does not track an empty directory. Verification treats an absent
-severity as zero samples and names it in the run summary rather than failing.
+When `generate` replaces a corpus, it compares the new measurement with the `coverage.json` of the previous corpus.
+It compares the obligations one by one, and identifies each obligation by its path and its demand. If the text of a
+path or a demand changes, the obligation shows as lost.
+If coverage is lost, `generate` lists the losses and keeps the previous corpus.
+If the loss is expected (because the generation of obligations changed for example), run `generate` again with
+`--accept-coverage-loss`.
+
+#### Refreshing the dataset
+
+`just refresh-dataset` runs `generate` for each era in `dataset/`, rewrites `dataset/reports/<era>/haskell-latest.md`,
+then runs `report`. Use the `ERAS` variable to refresh only some eras, for example `ERAS=conway just refresh-dataset`.
 
 ### Verification
 
 The Haskell node serves as the reference implementation for decoding on-chain data. Any divergence with what the Haskell node
-decode would trigger a fork in the network. This is why we need to verify that the Haskell node passes the generated test suite
-with no exceptions.
+decodes would trigger a fork in the network. Even if we use the Haskell decoders to classify the generated data, we still
+need to verify that the Haskell code passes the whole corpus, because:
 
-`verify expected` checks that deserialized then reserialized data matches the data in the `*.expected.cbor` files.
+ - There are manual cases in the corpus.
+ - The Haskell node code might have evolved.
+ - Some rules ask for an exact re-encoding of the data (`transaction_body` for example).
+ - This is additional evidence that the Haskell node conforms to the dataset with no exceptions (or acknowledged ones in the form of divergences).
 
-Container verification commands require the exact argument order `verify MODE ERA DATASET`
-The entrypoint constructs the underlying Haskell command and supplies its output path.
-```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify expected dijkstra /output/dijkstra
-```
-
-If you just want to check the deserialization `verify deserialize` checks that decoders accept valid data and reject invalid data:
-```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify deserialize conway /output/conway
-```
-
-### Normalization
-
-The conformance test suite needs to make sure that the successfully decoded data is meaningful.
-For example, a decoder that always succeeds and decodes nothing must be caught by the suite.
-One way to catch those issues is to mutate the test input data in order to see such a decoder fail.
-This is the purpose of the "zap" tests.
-
-However, this does not guarantee that all the information that was present in the original bytes was properly decoded.
-One way to check this is to re-encode the data and check if the re-encoded data matches the original one.
-
-Unfortunately this doesn't work for several reasons:
-
-  1. The CDDL accepts several encodings of the same data.
-  2. The Haskell node can do additional data transformations before encoding that makes the comparison difficult.
-
-In order to fix those difficulties, we require from each node implementation to:
-
- 1. Normalize its encoded data using the specification below, excepted for the rules specified in the next section.
- 2. Compare the normalized result to `<corpus>/<rule>/valid/<name>.expected.cbor`, the reference sitting beside the
-    sample `<corpus>/<rule>/valid/<name>.input.cbor`.
-
-### Rules whose bytes are hashed
-
-For the rules below encoding part of the format, because the bytes are hashed, so there should be no normalization.
-Indeed, a different encoding would yield a different hash:
+`verify` checks every sample of a corpus with the Haskell node decoders:
 
 ```
-auxiliary_data   native_script  transaction_witness_set
-header           redeemers
-plutus_data      transaction_body
+cbor verify dijkstra /output/dijkstra
 ```
 
-Re-encoding one of these samples must reproduce the bytes of the `.input.cbor` file exactly. Their `.expected.cbor`
-files are written without normalization, so comparing your re-encoding to the reference is already the exact
-comparison, with no normalization step on either side. `verify expected` additionally checks the re-encoding against
-the `.input.cbor` bytes themselves and reports a failure as `re-encoding differs from the original bytes`, which is
-what guarantees the two files agree.
+ - A sample in `valid` or `manual-valid` must decode, and its re-encoding must match its `.expected.cbor` file:
+   - For most rules, the re-encoding is normalized before the comparison (see
+     [VERIFICATION.md](VERIFICATION.md#normalization)).
+   - For the rules that the Haskell node re-encodes byte for byte (`transaction_body` for example), the re-encoding must
+     be the input bytes themselves, and the `.expected.cbor` file holds these bytes.
+ - Any other sample must be rejected.
+ - The `divergences` of `corpus.json` record the rare cases where the HuddleSpec and the Haskell node disagree (see
+   [Divergences](#divergences)).
 
-#### What belongs on that list
+`generate` runs the same checks on a new corpus before it replaces the previous one.
 
-A rule belongs there only when the bytes of the item **that rule encodes** are themselves a hash preimage. Containing
-something hashed is not enough, and this is where the list is easy to get wrong:
+The command prints each sample that fails as a `FAIL <path> (<reason>)` line on standard error, then a summary.
+In the container, standard error goes to `failures.log`, in the run directory under `/output/coverage`
+(or `CBOR_COVERAGE_DIR`).
 
- - A `script` is a tag beside a payload. The payload is hashed and has its own rule; the tag around it does not.
- - A `datum_option` selects between a datum hash and an inline datum. The datum is hashed, the selector is not.
- - A `cost_models` value does reach a hash, but as the `language_views` embedding inside the script integrity hash,
-   not as the protocol-parameter map this rule encodes.
- - A `block`, a `header_body` and a `transaction` each wrap memoized contents in a record that is rebuilt when encoded.
-   The parts keep their bytes; the wrapper does not.
+When the corpus passes, the command writes the result of each sample to a JSON file, in the format given in
+[Report output format](#report-output-format):
 
-Adding a rule that does not belong makes the suite demand something no implementation can deliver: a sample whose
-original encoding used an indefinite-length container can never be reproduced byte-for-byte by an encoder that writes
-definite ones, and nothing about that is a conformance defect.
-
-In the Haskell ledger the question has a mechanical answer, and it is the one used to settle this list. A type built on
-`MemoBytes` keeps the bytes it decoded and re-emits them unchanged, because `encCBOR` for a `MemoBytes` is
-`encodePreEncoded` over the stored bytes, which is exactly what hashing them requires. Every rule above decodes through
-such a type; every rule named in this section does not. Note that `header` and `header_body` fall on opposite sides:
-`BHeader` is memoized, `BHBody` is not.
-
-The first three were also caught empirically, which is worth recording because it shows the failure mode: with them
-listed, 177 of the 441 testable samples failed, every single failure had an indefinite-length construct in the
-original, and for `script` and `datum_option` an indefinite outer container predicted failure with no exceptions in
-either direction. The other three have no decodable samples in the current corpora, so only the source could settle
-them.
-
+ - In the container, the results go to `reports/<corpus>/haskell-latest.json`, beside the corpus, with a Markdown
+   summary in `haskell-latest.md` (see [For the Haskell node](#for-the-haskell-node)).
+ - When you run the `cbor` binary directly, you must give the path of the JSON file as the last argument:
+   `cbor verify dijkstra dataset/dijkstra results.json`.
 
 ## Cardano CBOR dataset for users
 
@@ -206,80 +268,16 @@ Users of this repository are expected to:
  1. Download the corpus for which they want to check the conformance.
  2. Implement their tests using the corpus as an input.
  3. Each test must check, for every `*.input.cbor` file found by one recursive scan of the corpus, that:
-    1.  every case whose directory is named `valid` can be decoded.
-    2.  every other case is rejected, at every severity including `invalid-zap-0`.
-    3.  re-encoded and normalized values match the bytes of the `.expected.cbor` file beside the sample.
-    4.  for the rules whose bytes are hashed, listed above, re-encoded values match the `.input.cbor` bytes exactly.
- 4. Output the results of the tests as a JSON file to a stable URL (for example as a Github artefact).
-
-## CLI discovery
-
-```
-docker run --rm cbor --help
-docker run --rm cbor list-eras
-docker run --rm cbor list-rules --era conway
-```
-
-The era registry is shared by generation, verification, help, and rule
-listing, so adding an era or rule does not require synchronizing wrapper
-scripts.
-
-#### Normalization specification
-
-Here is the specification of what needs to be normalized in order to compare re-encoded data to the expected data.
-Most of the normalizations rules below address the "shape" of the data, except for integers and rational values.
-
-Apply recursively to every nested item in the CBOR output:
-
-| from                                                   | to                                                         |
-| ------------------------------------------------------ | ---------------------------------------------------------- |
-| indefinite-length array                                | definite-length, same elements in the same order           |
-| indefinite-length map                                  | definite-length, same entries in the same order            |
-| chunked byte string                                    | one definite byte string, chunks concatenated              |
-| chunked text string                                    | one definite text string, chunks concatenated              |
-| non-minimal integer head                               | the minimal head encoding the same value                   |
-| bignum (#6.2/#6.3) whose magnitude fits a native head  | the equivalent uint/nint                                   |
-| bignum that does not fit                               | kept, leading zero bytes dropped from the magnitude        |
-| rational                                               | a reduced rational with minimal numerator and denominator  |
-
-A bignum tag carries the same value a `uint` or `nint` head can carry whenever the magnitude is below 2^64, so leaving
-the choice open would let two encoders of the same number disagree. The fold runs in both directions of the boundary:
-below it the tag goes away, at or above it the tag stays and only the magnitude is canonicalized. Implementations that
-decode into a language-level integer and re-encode get this for free, as `2^64 - 1` and `2^64` land on either side on
-their own.
-
-An example of the normalization algorithm in Haskell can be found in this repository [here](app/Normalize.hs).
-
-### Testing the normalization
-
-`normalization-vectors/` holds 20 small hand-verified pairs, one `.in.cbor` and one `.out.cbor` per case. Your
-normalizer is correct on this set when normalizing each `<n>.in.cbor` gives bytes identical to `<n>.out.cbor`. Eight of
-the cases must come out unchanged, which is what keeps a content bug failing rather than passing quietly.
-
-`normalization-vectors/README.md` lists every pair as reviewable hex and says what each case is for. That table is the
-authority: the committed files were checked against it by hand rather than taken from an implementation.
-
-To check the reference implementation against them, from anywhere in the repository:
-
-```
-scripts/check-normalization-vectors
-```
-
-It builds the image's `vector-check` stage, which runs the check as a test suite and prints one line per case. The
-runtime image does not depend on that stage, so a stale vector fails this without blocking a build of the tool, and
-this belongs in CI for the same reason. The check needs no ledger packages, so it finishes in seconds once the build
-plan is cached.
+    1. Every case whose directory is named `valid` or `manual-valid` can be decoded.
+    2. Every other case is rejected, at every severity including `invalid-zap-0`.
+    3. Re-encoded data match the bytes of the `.expected.cbor` file beside the sample (see
+       [VERIFICATION.md](VERIFICATION.md) for more details about checking re-encoded data).
+ 4. Output the results of the tests as a JSON file (see [Report output format](#report-output-format)) to a stable URL
+    (for example as a GitHub artifact).
 
 ### Report output format
 
-A completed container `verify expected` run writes two files beside the corpus, under
-`reports/<corpus>/`:
-- `haskell-latest.json`: raw per-sample results.
-- `haskell-latest.md`: a Markdown summary by `scripts/make-report.py`.
-
-The JSON is a single object keyed by corpus-relative sample paths, using forward
-slashes and including the `.input.cbor` suffix. Every sample has either `true`
-when it meets its expectation or an error message string:
+Node implementors must produce a JSON report with the following format:
 
 ```json
 {
@@ -288,59 +286,33 @@ when it meets its expectation or an error message string:
 }
 ```
 
-For invalid samples, `true` means the decoder rejected the input. For valid
-samples it means decoding, re-encoding, reference comparison, and any required
-byte-exact comparison all passed. There are no metadata or aggregate fields.
-This replaces the previous aggregate `latest.json` format.
+The JSON is a single object keyed by corpus-relative sample paths, using forward slashes and including the `.input.cbor` suffix.
+Every sample is either `true` when it meets its expectation or an error message string (see
+[VERIFICATION.md](VERIFICATION.md) for a more precise discussion on expectations).
 
-Error strings use `<category>: <message>`, with the same core categories as
-the TurboCardano results: `decode` for decoding or input-read failures, `encode`
-for normalization, re-encoding comparisons or reference-read failures, and
-`unsupported` for rules the selected Haskell era does not implement. Unsupported
-samples fail in both valid and invalid categories; lack of support does not count
-as rejecting an invalid input.
+Error strings use the format `<category>: <message>`, with the following categories:
 
-The Markdown report shows valid/invalid success percentages and counts per rule,
-plus totals and the number of failed or missing results. Error messages remain
-in the JSON. Missing results count against the success rate; result paths absent
-from the corpus are rejected.
+ - `decode` for decoding or input-read failures.
+ - `encode` for normalization, re-encoding comparisons or reference-read failures.
 
-To regenerate the Markdown without running verification:
+#### Markdown report
 
+You can generate a Markdown report for the verification with:
 ```sh
 python3 scripts/make-report.py dataset/conway dataset/reports/conway/haskell-latest.json > dataset/reports/conway/haskell-latest.md
 ```
 
-# Coverage reports
+This report shows valid/invalid success percentages and counts per rule, plus totals and the number of failed
+or missing results. Missing results count against the success rate; result paths absent from the corpus are rejected.
 
-The Docker image exposes the Haskell executable through a small entrypoint that
-automatically produces code-coverage reports for verification commands.
+#### For the Haskell node
 
-Every `verify` invocation writes to
-`/output/coverage/<dataset-name>-<verification-mode>-<UTC-timestamp>`. For
-example, deserializing `dijkstra` can write to
-`/output/coverage/dijkstra-deserialize-20260901T113859Z`. The final
-command output prints the exact directory.
+Since the Haskell node is a reference implementation for the CBOR datasets, we keep a copy of its reports in this repository.
 
-Each run contains:
+A completed container `verify` run writes two files beside the corpus, under `reports/<corpus>/`:
+- `haskell-latest.json`: raw per-sample results.
+- `haskell-latest.md`: a Markdown summary by `scripts/make-report.py`.
 
-- `cbor.tix`: raw GHC HPC execution counts.
-- `report.txt`: per-module expression, alternatives, and boolean conditions
-  (guards, `if` conditions, and qualifiers).
-- `report.xml`: the same coverage data in HPC's XML format.
-- `haskell-results.json` and `haskell-report.md`: raw results and the rendered
-  conformance report for `expected` runs, when produced successfully.
-- `html/hpc_index.html`: the main source-coverage report.
-- `html/hpc_index_alt.html`: alternative coverage by module.
-- `html/hpc_index_exp.html`: expression coverage by module.
-- `html/hpc_index_fun.html`: declaration coverage by module.
-
-Reports are generated even when verification finds failures, after which the
-container returns the verifier's exit status. Set `CBOR_COVERAGE_DIR` to put
-reports elsewhere; the selected directory must be writable and outside the
-dataset being verified. Concurrent runs receive separate directories.
-
-Every `verify` invocation also writes its error messages to `failures.log`
-inside that invocation's coverage directory. The verifier statistics and the
-failure-log path are printed to standard output; individual errors remain in
-the log instead of overwhelming the console output.
+The `turbocardano-latest.json` files beside them are reports from another implementation, TurboCardano. They were made
+on 2026-10-03 against an older corpus, so many of their paths are no longer in the dataset, and `make-report.py`
+refuses them.

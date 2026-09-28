@@ -32,6 +32,12 @@ numactl.systems = ["x86_64-linux"]
 ormolu.pkg-path = "ormolu"
 hspec-discover.pkg-path = "haskellPackages.hspec-discover"
 hspec-discover.priority = 6
+just.pkg-path = "just"
+autoconf.pkg-path = "autoconf"
+automake.pkg-path = "automake"
+libtool.pkg-path = "libtool"
+shellcheck.pkg-path = "shellcheck"
+hlint.pkg-path = "hlint"
 
 [hook]
 on-activate = '''

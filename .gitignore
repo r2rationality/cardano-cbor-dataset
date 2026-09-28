@@ -1,14 +1,17 @@
 .cache/
 .tmp/
-.vscode/
 dataset/.*.tmp-*/
 dataset/coverage
+.starship.toml
 
 # Keep the shared environment and editor configuration despite global ignores.
 !/.flox/
 !/.flox/**
 !/hie.yaml
 !/.ghci
+!/.vscode/
+/.vscode/*
+!/.vscode/settings.json
 !/cabal.project
 !/cabal.project.ledger
 /cabal.project.local

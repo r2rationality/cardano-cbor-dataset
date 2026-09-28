@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+hls_version=2.15.0.0
+hls_dir="$project_dir/.cache/hls-$hls_version"
+hls="$hls_dir/bin/haskell-language-server"
+compiler=$(ghc --print-libdir)
+
+# Build with the project's Flox compiler to match its GHC package ABI.
+# Keep build output off stdout, which carries the language server protocol.
+if [ ! -x "$hls" ] || [ "$(cat "$hls_dir/compiler" 2>/dev/null || true)" != "$compiler" ]; then
+  printf 'Building HLS %s with the project compiler. The first launch takes several minutes.\n' "$hls_version" >&2
+  cabal update --ignore-project >&2
+  cabal install "haskell-language-server-$hls_version" \
+    --ignore-project \
+    --installdir="$hls_dir/bin" \
+    --install-method=copy \
+    --overwrite-policy=always \
+    -j4 >&2
+  printf '%s\n' "$compiler" > "$hls_dir/compiler"
+fi
+
+exec "$hls" "$@"
