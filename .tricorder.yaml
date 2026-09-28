@@ -1,0 +1,3 @@
+session:
+  command: cabal repl --enable-multi-repl --repl-options=-ignore-dot-ghci cardano-cbor-dataset
+  watch_dirs: [app, test]

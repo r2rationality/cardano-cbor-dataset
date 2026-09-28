@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+# VSCode can start this script without an active Flox shell.
+if ! command -v flox >/dev/null 2>&1; then
+  printf '%s\n' 'Flox is not on PATH. Start VSCode from a terminal that has Flox on PATH.' >&2
+  exit 127
+fi
+
+exec flox activate -d "$project_dir" -- haskell-language-server-wrapper "$@"

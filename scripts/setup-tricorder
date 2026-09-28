@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pin the release and the checksums from the GitHub release assets.
+version=0.4.1.1
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64)
+    system=aarch64-darwin
+    checksum=4b0bd7734a93eb713196072568b7d6732e313a3ebd84f2695391e0e1a4e7cfc0
+    ;;
+  Linux-x86_64)
+    system=x86_64-linux
+    checksum=f00c3fb594d00aff823712d277ae71e8fb65db97ea1c11605cd32a0a9609c311
+    ;;
+  *)
+    printf '%s\n' 'No pinned Tricorder binary is available for this system.' >&2
+    exit 1
+    ;;
+esac
+
+install_dir="${FLOX_ENV_CACHE:?Activate the Flox environment first}/tricorder-$version-runtime-v1"
+if [ -x "$install_dir/bin/tricorder" ]; then
+  exit 0
+fi
+
+mkdir -p "$install_dir/bin" "$install_dir/libexec"
+# Separate temporary directories also allow concurrent first activations.
+download_dir=$(mktemp -d "$install_dir/download.XXXXXX")
+archive="$download_dir/tricorder.gz"
+url="https://github.com/tweag/tricorder/releases/download/tricorder-$version/tricorder_$system.gz"
+printf 'Download Tricorder %s for %s\n' "$version" "$system" >&2
+curl --fail --location --silent --show-error --retry 3 "$url" -o "$archive"
+printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --status
+gzip -dc "$archive" > "$download_dir/tricorder"
+chmod +x "$download_dir/tricorder"
+if [ "$system" = x86_64-linux ]; then
+  patchelf --set-interpreter "$FLOX_ENV/lib/ld-linux-x86-64.so.2" \
+    --set-rpath "$FLOX_ENV/lib" "$download_dir/tricorder"
+fi
+mv "$download_dir/tricorder" "$install_dir/libexec/tricorder"
+cat > "$download_dir/launcher" <<'EOF'
+#!/bin/sh
+set -eu
+install_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "$(uname -s)" = Darwin ]; then
+  # The release embeds Nix store paths. Resolve its libraries through Flox.
+  export DYLD_LIBRARY_PATH="$FLOX_ENV/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+fi
+exec "$install_dir/libexec/tricorder" "$@"
+EOF
+chmod +x "$download_dir/launcher"
+mv "$download_dir/launcher" "$install_dir/bin/tricorder"

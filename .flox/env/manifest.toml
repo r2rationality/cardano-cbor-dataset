@@ -1,0 +1,61 @@
+schema-version = "1.17.0"
+
+[install]
+# Match Dockerfile with GHC 9.6.7 and HLS 2.10.0.0 from one Nixpkgs revision.
+# The Flox catalog does not expose this compiler-specific HLS package.
+ghc.flake = "github:NixOS/nixpkgs/e4b09e47ace7d87de083786b404bf232eb6c89d8#haskell.compiler.ghc967"
+hls.flake = "github:NixOS/nixpkgs/e4b09e47ace7d87de083786b404bf232eb6c89d8#haskell.packages.ghc967.haskell-language-server"
+cabal.pkg-path = "cabal-install"
+hoogle.pkg-path = "haskellPackages.hoogle"
+# Preserve HLS's runtime-library links where the packages overlap.
+hoogle.priority = 6
+pkg-config.pkg-path = "pkg-config"
+zlib.pkg-path = "zlib"
+zlib.outputs = "all"
+# Download and check the official Tricorder binary in the activation hook.
+curl.pkg-path = "curl"
+gzip.pkg-path = "gzip"
+coreutils.pkg-path = "coreutils"
+gmp.pkg-path = "gmp"
+ncurses.pkg-path = "ncurses"
+libiconv.pkg-path = "libiconv"
+darwin-libffi.pkg-path = "darwin.libffi"
+darwin-libffi.systems = ["aarch64-darwin"]
+libffi.pkg-path = "libffi"
+libffi.systems = ["x86_64-linux"]
+glibc.pkg-path = "glibc"
+glibc.systems = ["x86_64-linux"]
+patchelf.pkg-path = "patchelf"
+patchelf.systems = ["x86_64-linux"]
+numactl.pkg-path = "numactl"
+numactl.systems = ["x86_64-linux"]
+ormolu.pkg-path = "ormolu"
+hspec-discover.pkg-path = "haskellPackages.hspec-discover"
+hspec-discover.priority = 6
+
+[hook]
+on-activate = '''
+  bash "$FLOX_ENV_PROJECT/scripts/setup-tricorder" || return 1
+  export PATH="$FLOX_ENV_PROJECT/scripts:$FLOX_ENV_CACHE/tricorder-0.4.1.1-runtime-v1/bin:$PATH"
+
+  # Outside nix-shell, the compiler wrapper needs the platform-specific target.
+  # Apply it to dependency builds as well as the project's own link steps.
+  if [ "$(uname -s)" = Darwin ]; then
+    export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-$(sw_vers -productVersion)}"
+    export MACOSX_DEPLOYMENT_TARGET_arm64_apple_darwin="$MACOSX_DEPLOYMENT_TARGET"
+    export MACOSX_DEPLOYMENT_TARGET_aarch64_apple_darwin="$MACOSX_DEPLOYMENT_TARGET"
+  fi
+
+  # Reuse the native Cardano libraries from the local development setup.
+  native="$FLOX_ENV_PROJECT/.cache/native"
+  if [ -d "$native/lib/pkgconfig" ]; then
+    export PKG_CONFIG_PATH="$native/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+    export LIBRARY_PATH="$native/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"
+    export C_INCLUDE_PATH="$native/include${C_INCLUDE_PATH:+:$C_INCLUDE_PATH}"
+  fi
+  unset native
+'''
+
+[options]
+# These systems have official Tricorder release binaries.
+systems = ["aarch64-darwin", "x86_64-linux"]

@@ -1,0 +1,3 @@
+-- Suppress incomplete pattern and deprecation warnings at the prompt only.
+-- Source modules retain the project's warning-as-error settings.
+:seti -Wno-incomplete-uni-patterns -Wno-deprecations

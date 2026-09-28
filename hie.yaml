@@ -1,0 +1,10 @@
+cradle:
+  cabal:
+    cabalProject: "cabal.project"
+    components:
+      - path: "app"
+        component: "cardano-cbor-dataset:exe:cbor"
+      - path: "test/unit"
+        component: "cardano-cbor-dataset:test:unit"
+      - path: "test/CheckVectors.hs"
+        component: "cardano-cbor-dataset:test:normalization-vectors"

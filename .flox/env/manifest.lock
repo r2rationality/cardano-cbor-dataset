@@ -1,0 +1,1188 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "schema-version": "1.17.0",
+    "install": {
+      "cabal": {
+        "pkg-path": "cabal-install"
+      },
+      "coreutils": {
+        "pkg-path": "coreutils"
+      },
+      "curl": {
+        "pkg-path": "curl"
+      },
+      "darwin-libffi": {
+        "pkg-path": "darwin.libffi",
+        "systems": [
+          "aarch64-darwin"
+        ]
+      },
+      "ghc": {
+        "flake": "github:NixOS/nixpkgs/e4b09e47ace7d87de083786b404bf232eb6c89d8#haskell.compiler.ghc967"
+      },
+      "glibc": {
+        "pkg-path": "glibc",
+        "systems": [
+          "x86_64-linux"
+        ]
+      },
+      "gmp": {
+        "pkg-path": "gmp"
+      },
+      "gzip": {
+        "pkg-path": "gzip"
+      },
+      "hls": {
+        "flake": "github:NixOS/nixpkgs/e4b09e47ace7d87de083786b404bf232eb6c89d8#haskell.packages.ghc967.haskell-language-server"
+      },
+      "hoogle": {
+        "pkg-path": "haskellPackages.hoogle",
+        "priority": 6
+      },
+      "hspec-discover": {
+        "pkg-path": "haskellPackages.hspec-discover",
+        "priority": 6
+      },
+      "libffi": {
+        "pkg-path": "libffi",
+        "systems": [
+          "x86_64-linux"
+        ]
+      },
+      "libiconv": {
+        "pkg-path": "libiconv"
+      },
+      "ncurses": {
+        "pkg-path": "ncurses"
+      },
+      "numactl": {
+        "pkg-path": "numactl",
+        "systems": [
+          "x86_64-linux"
+        ]
+      },
+      "ormolu": {
+        "pkg-path": "ormolu"
+      },
+      "patchelf": {
+        "pkg-path": "patchelf",
+        "systems": [
+          "x86_64-linux"
+        ]
+      },
+      "pkg-config": {
+        "pkg-path": "pkg-config"
+      },
+      "zlib": {
+        "pkg-path": "zlib",
+        "outputs": "all"
+      }
+    },
+    "hook": {
+      "on-activate": "  bash \"$FLOX_ENV_PROJECT/scripts/setup-tricorder\" || return 1\n  export PATH=\"$FLOX_ENV_PROJECT/scripts:$FLOX_ENV_CACHE/tricorder-0.4.1.1-runtime-v1/bin:$PATH\"\n\n  # Outside nix-shell, the compiler wrapper needs the platform-specific target.\n  # Apply it to dependency builds as well as the project's own link steps.\n  if [ \"$(uname -s)\" = Darwin ]; then\n    export MACOSX_DEPLOYMENT_TARGET=\"${MACOSX_DEPLOYMENT_TARGET:-$(sw_vers -productVersion)}\"\n    export MACOSX_DEPLOYMENT_TARGET_arm64_apple_darwin=\"$MACOSX_DEPLOYMENT_TARGET\"\n    export MACOSX_DEPLOYMENT_TARGET_aarch64_apple_darwin=\"$MACOSX_DEPLOYMENT_TARGET\"\n  fi\n\n  # Reuse the native Cardano libraries from the local development setup.\n  native=\"$FLOX_ENV_PROJECT/.cache/native\"\n  if [ -d \"$native/lib/pkgconfig\" ]; then\n    export PKG_CONFIG_PATH=\"$native/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}\"\n    export LIBRARY_PATH=\"$native/lib${LIBRARY_PATH:+:$LIBRARY_PATH}\"\n    export C_INCLUDE_PATH=\"$native/include${C_INCLUDE_PATH:+:$C_INCLUDE_PATH}\"\n  fi\n  unset native\n"
+    },
+    "options": {
+      "systems": [
+        "aarch64-darwin",
+        "x86_64-linux"
+      ]
+    }
+  },
+  "packages": [
+    {
+      "attr_path": "cabal-install",
+      "broken": false,
+      "derivation": "/nix/store/1rpjjp75q6jmw6bydh4aay8hsjg8w6cv-cabal-install-3.16.1.0.drv",
+      "description": "The command-line interface for Cabal and Hackage",
+      "install_id": "cabal",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "cabal-install-3.16.1.0",
+      "pname": "cabal-install",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:27.617810Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.16.1.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/hh07z6is3hynf3mkl7c34drajlsp67fc-cabal-install-3.16.1.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "cabal-install",
+      "broken": false,
+      "derivation": "/nix/store/gywg3q6pplqz3nrn8nh0wna9xypbrbdh-cabal-install-3.16.1.0.drv",
+      "description": "The command-line interface for Cabal and Hackage",
+      "install_id": "cabal",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "cabal-install-3.16.1.0",
+      "pname": "cabal-install",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:00.666279Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.16.1.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/rxva1mjyb9w6v1l04vk8l7aw4k5fcqkj-cabal-install-3.16.1.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "coreutils",
+      "broken": false,
+      "derivation": "/nix/store/8qv2dhf91mjvz3b1m85m1kschxsnypvc-coreutils-9.11.drv",
+      "description": "GNU Core Utilities",
+      "install_id": "coreutils",
+      "license": "GPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "coreutils-9.11",
+      "pname": "coreutils",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:28.033788Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "9.11",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "info": "/nix/store/0j9sq91jq78i9d3vxf3x7m1drz20iqqj-coreutils-9.11-info",
+        "out": "/nix/store/bv38kxd78jkqh1qwj30a8fl9z97m5pb8-coreutils-9.11"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "coreutils",
+      "broken": false,
+      "derivation": "/nix/store/bqpz9sxvv9krqhy715gnn3hw963d7i5q-coreutils-9.11.drv",
+      "description": "GNU Core Utilities",
+      "install_id": "coreutils",
+      "license": "GPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "coreutils-9.11",
+      "pname": "coreutils",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:01.145497Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "9.11",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "debug": "/nix/store/phrz4klpqdwyi8pb60157wn82a08m482-coreutils-9.11-debug",
+        "info": "/nix/store/3xahzqwca71laxfxj7rxfsc0n5kzc5rf-coreutils-9.11-info",
+        "out": "/nix/store/xjl7p8dvyk2j53kqf7f43kdj4ypbxz7g-coreutils-9.11"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "curl",
+      "broken": false,
+      "derivation": "/nix/store/yhv2wslp5rlqb4qwac64g5p72cp0r11b-curl-8.22.0.drv",
+      "description": "Command line tool for transferring files with URL syntax",
+      "install_id": "curl",
+      "license": "curl",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "curl-8.22.0",
+      "pname": "curl",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:28.082131Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.22.0",
+      "outputs_to_install": [
+        "bin",
+        "bin",
+        "man",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/5k2khxpqssazsbilyh0d4mjvs84ablpf-curl-8.22.0-bin",
+        "dev": "/nix/store/sn4w8aa1igcjapghgn8ixxw7f0mdyd53-curl-8.22.0-dev",
+        "devdoc": "/nix/store/1259f4wbkniw096ydgc4klpybrwyywv0-curl-8.22.0-devdoc",
+        "man": "/nix/store/6qzi8yj670n8hxgqx86h4hyfvr6py2wh-curl-8.22.0-man",
+        "out": "/nix/store/6c7nrda2k1s1qq8c97rckhm3iy61hkz9-curl-8.22.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "curl",
+      "broken": false,
+      "derivation": "/nix/store/5cisscl2qgcvmiydir9xl7k43fahg2cs-curl-8.22.0.drv",
+      "description": "Command line tool for transferring files with URL syntax",
+      "install_id": "curl",
+      "license": "curl",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "curl-8.22.0",
+      "pname": "curl",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:01.262783Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.22.0",
+      "outputs_to_install": [
+        "bin",
+        "bin",
+        "bin",
+        "man",
+        "man",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/cp8qnyl8i0s62g3a1465i258mf5bcr6k-curl-8.22.0-bin",
+        "debug": "/nix/store/lx4z0gwrc7qg1z42gzvv26dlh8sl27as-curl-8.22.0-debug",
+        "dev": "/nix/store/5ca54qw9hzpc1f3dk5x3c9cg3bdb93iv-curl-8.22.0-dev",
+        "devdoc": "/nix/store/khm5a5wzp669swlph32akb5fzf36dlld-curl-8.22.0-devdoc",
+        "man": "/nix/store/akw680dzfd4azvagifsxlwmjpipp3yz4-curl-8.22.0-man",
+        "out": "/nix/store/s21axjr25zw6x9g6ripn7kamgbvw0y69-curl-8.22.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "darwin.libffi",
+      "broken": false,
+      "derivation": "/nix/store/di6b6nd4bb6vn19511bjv7zv4a1wkznx-libffi-40.drv",
+      "description": "Foreign function call interface library",
+      "install_id": "darwin-libffi",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "libffi-40",
+      "pname": "libffi",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:28.111747Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "40",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/v4xcxjbc2a9sqkn53zk86ahd7rd2j1jh-libffi-40-dev",
+        "info": "/nix/store/z1hiyslirc3f4lzi15ix88kd26n9gxkj-libffi-40-info",
+        "man": "/nix/store/sh5094s922jxkqaqhi63jp3vpfvwbnb5-libffi-40-man",
+        "out": "/nix/store/wllb7jkfyhpw7dglqk49ac6ma6dq4am8-libffi-40"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "glibc",
+      "broken": false,
+      "derivation": "/nix/store/sayi2sas6kn7q181jy7ic8h8hy2jiqn7-glibc-2.42-84.drv",
+      "description": "GNU C Library",
+      "install_id": "glibc",
+      "license": "LGPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "glibc-2.42-84",
+      "pname": "glibc",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:02.718129Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.42-84",
+      "outputs_to_install": [
+        "bin",
+        "bin",
+        "bin",
+        "bin",
+        "bin"
+      ],
+      "outputs": {
+        "bin": "/nix/store/fdpy1l72q9gvq8d9snrdq67gm0j5s1dg-glibc-2.42-84-bin",
+        "debug": "/nix/store/fk98h17sza0xxz9iw0fi5b2nn1h4c0pm-glibc-2.42-84-debug",
+        "dev": "/nix/store/lbjwxax9n0457lgd83rqwpd1l9lgfl7r-glibc-2.42-84-dev",
+        "getent": "/nix/store/6smny04v1q13rksspklvxn6qiqpi8jli-glibc-2.42-84-getent",
+        "out": "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84",
+        "static": "/nix/store/dr8sxxby6x9k0kg0s054cmcxqzpiy2yy-glibc-2.42-84-static"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "gmp",
+      "broken": false,
+      "derivation": "/nix/store/bvhn6vrfjcp82zknss780kgfp6pgh5az-gmp-with-cxx-6.3.0.drv",
+      "description": "GNU multiple precision arithmetic library",
+      "install_id": "gmp",
+      "license": "[ LGPL-3.0-or-later, GPL-2.0-or-later ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "gmp-with-cxx-6.3.0",
+      "pname": "gmp",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:28.988466Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.3.0",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/52l6kw1rr30sfp6v2ic1d2yfl74mzlbf-gmp-with-cxx-6.3.0-dev",
+        "info": "/nix/store/fpg1inllk9l4z6hbs2214qdfinh11hg6-gmp-with-cxx-6.3.0-info",
+        "out": "/nix/store/k2icrr0gkhn0llxaglhvlrvpzv1kw1xv-gmp-with-cxx-6.3.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "gmp",
+      "broken": false,
+      "derivation": "/nix/store/j3k05awfhnnbzhj48fih32izj0wd9y83-gmp-with-cxx-6.3.0.drv",
+      "description": "GNU multiple precision arithmetic library",
+      "install_id": "gmp",
+      "license": "[ LGPL-3.0-or-later, GPL-2.0-or-later ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "gmp-with-cxx-6.3.0",
+      "pname": "gmp",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:02.746973Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.3.0",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/1sj0rbpn9nzz1mp754r15yxbnvzbdhfb-gmp-with-cxx-6.3.0-dev",
+        "info": "/nix/store/7rgkbi1msn60qc1py2940b49hiag6wj4-gmp-with-cxx-6.3.0-info",
+        "out": "/nix/store/jxd26cx6cgbjzal3mzw0vcv8pqdbh0bb-gmp-with-cxx-6.3.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "gzip",
+      "broken": false,
+      "derivation": "/nix/store/nzc2h2l0hqkdxzhhrqw5fx35bv9w566q-gzip-1.14.drv",
+      "description": "GNU zip compression program",
+      "install_id": "gzip",
+      "license": "GPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "gzip-1.14",
+      "pname": "gzip",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:29.306357Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.14",
+      "outputs_to_install": [
+        "man",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "info": "/nix/store/0yjxmzkqjwxxj3f4kvkvr1rzgqbpzr1b-gzip-1.14-info",
+        "man": "/nix/store/g0q6b7n37rk0aknnhf5f4ngb7k1w4r0r-gzip-1.14-man",
+        "out": "/nix/store/vg1lydi7c743748y38c96k78ahfdysh0-gzip-1.14"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "gzip",
+      "broken": false,
+      "derivation": "/nix/store/kin96bbxqrwfk5ih9vp3pfx9xkpq8wyj-gzip-1.14.drv",
+      "description": "GNU zip compression program",
+      "install_id": "gzip",
+      "license": "GPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "gzip-1.14",
+      "pname": "gzip",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:04.053072Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.14",
+      "outputs_to_install": [
+        "man",
+        "man",
+        "man",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "info": "/nix/store/65ql7whpyfn3vndwhacjzzp3kgr3iy62-gzip-1.14-info",
+        "man": "/nix/store/ppinlw599y7kdm28hhbvj51mykiflslm-gzip-1.14-man",
+        "out": "/nix/store/l5sll8nxk70p73l5yqbsjy4mh0c3g0v5-gzip-1.14"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "haskellPackages.hoogle",
+      "broken": false,
+      "derivation": "/nix/store/ws5kqyng9zm275m4dafw0c5qy6mlhr5k-hoogle-5.0.18.4-unstable-2024-07-28.drv",
+      "description": "Haskell API Search",
+      "install_id": "hoogle",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "hoogle-5.0.18.4-unstable-2024-07-28",
+      "pname": "hoogle",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:33.812980Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2024-07-28",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "data": "/nix/store/wxjppvspr3fk722wcd8hnmgmf3x61si4-hoogle-5.0.18.4-unstable-2024-07-28-data",
+        "doc": "/nix/store/7zps6fikwwck6k7h0yd75crb6cvyh2ys-hoogle-5.0.18.4-unstable-2024-07-28-doc",
+        "out": "/nix/store/6q3b3l3mn38n8h036x86613k54dyrky9-hoogle-5.0.18.4-unstable-2024-07-28"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 6
+    },
+    {
+      "attr_path": "haskellPackages.hoogle",
+      "broken": false,
+      "derivation": "/nix/store/q4yhgik0k68q5r8wsjxiqalzxppyzjdr-hoogle-5.0.18.4-unstable-2024-07-28.drv",
+      "description": "Haskell API Search",
+      "install_id": "hoogle",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "hoogle-5.0.18.4-unstable-2024-07-28",
+      "pname": "hoogle",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:10.274865Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2024-07-28",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "data": "/nix/store/dp5qr6kdls0jdacx64x2sfsp1s1drqzl-hoogle-5.0.18.4-unstable-2024-07-28-data",
+        "doc": "/nix/store/9819rc21mimnc0cxkrfy1h3ad2bilfn1-hoogle-5.0.18.4-unstable-2024-07-28-doc",
+        "out": "/nix/store/6vvkldkny7qnf50cv6zhc1b963g8m2h3-hoogle-5.0.18.4-unstable-2024-07-28"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 6
+    },
+    {
+      "attr_path": "haskellPackages.hspec-discover",
+      "broken": false,
+      "derivation": "/nix/store/h6wskxinj99xdsr9sqng7dp6dn84v7bk-hspec-discover-2.11.17.drv",
+      "description": "Automatically discover and run Hspec tests",
+      "install_id": "hspec-discover",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "hspec-discover-2.11.17",
+      "pname": "hspec-discover",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:34.061417Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.11.17",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/4h3p89z11w1pfgr3yjrcn6drps8cznya-hspec-discover-2.11.17-doc",
+        "out": "/nix/store/j0g557sg3zhvp09mwbf4qscm5014qi2j-hspec-discover-2.11.17"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 6
+    },
+    {
+      "attr_path": "haskellPackages.hspec-discover",
+      "broken": false,
+      "derivation": "/nix/store/4phg75g91krvjsj52g6gcdlcfq9vr6km-hspec-discover-2.11.17.drv",
+      "description": "Automatically discover and run Hspec tests",
+      "install_id": "hspec-discover",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "hspec-discover-2.11.17",
+      "pname": "hspec-discover",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:10.605939Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.11.17",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/wl6d1wbzgybi75vjhvzz51jsf8izn2yq-hspec-discover-2.11.17-doc",
+        "out": "/nix/store/wpga7iwncnkjpw6f6b39h3z1ggfc7a35-hspec-discover-2.11.17"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 6
+    },
+    {
+      "attr_path": "libffi",
+      "broken": false,
+      "derivation": "/nix/store/giwqqybcxq2ghc7kmkwq94b48d56wvr0-libffi-3.8.0.drv",
+      "description": "Foreign function call interface library",
+      "install_id": "libffi",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "libffi-3.8.0",
+      "pname": "libffi",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:27.307573Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.8.0",
+      "outputs_to_install": [
+        "man",
+        "man",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/n52j9mfnakj0d2c9ai71jsp6bbp1sddl-libffi-3.8.0-dev",
+        "info": "/nix/store/psqifgisbz9fbbbhrpy1dmfmlqayw0jk-libffi-3.8.0-info",
+        "man": "/nix/store/rsa3arg0sjhb72is686v7z3h2zmhhi61-libffi-3.8.0-man",
+        "out": "/nix/store/3r5wfb1dl3sfknvy1yringvmap0hxj4r-libffi-3.8.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "libiconv",
+      "broken": false,
+      "derivation": "/nix/store/lk6rhhn5mz7q48s1qbwa7vncl2dmavsg-libiconv-115.100.1.drv",
+      "description": "Iconv(3) implementation",
+      "install_id": "libiconv",
+      "license": "[ BSD-2-Clause, BSD-3-Clause, APSL-1.0 ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "libiconv-115.100.1",
+      "pname": "libiconv",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:46.491341Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "115.100.1",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/2gydsp69sx90iq1adjghdi033k1z1xln-libiconv-115.100.1-dev",
+        "out": "/nix/store/ls125wfdax9gk2ryq7fgzrncpi6x5v2s-libiconv-115.100.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "libiconv",
+      "broken": false,
+      "derivation": "/nix/store/vppvlqhx1d3rs6265hxb11skphjwa792-glibc-iconv-2.42.drv",
+      "install_id": "libiconv",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "glibc-iconv-2.42",
+      "pname": "libiconv",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:27.477485Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.42",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/9hy7xsh4a6s1nvbjj1xpi3girai06fjp-glibc-iconv-2.42"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "ncurses",
+      "broken": false,
+      "derivation": "/nix/store/2mlfg92c0w7ssg7c42x55jmrwjgz2afv-ncurses-6.6.drv",
+      "description": "Free software emulation of curses in SVR4 and more",
+      "install_id": "ncurses",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "ncurses-6.6",
+      "pname": "ncurses",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:51.840490Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.6",
+      "outputs_to_install": [
+        "man",
+        "man",
+        "man",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/wsal9s57jwxpndj9cdfd1hdkfzpykm3x-ncurses-6.6-dev",
+        "man": "/nix/store/x56bx9b557qc5861jq77iml4cp07gssg-ncurses-6.6-man",
+        "out": "/nix/store/c8dd0nngf5k1cd5x8d8085g2fjkrc6ng-ncurses-6.6"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "ncurses",
+      "broken": false,
+      "derivation": "/nix/store/mrl06az3wnv2j5h2x9wl54dx5cx0xsl0-ncurses-6.6.drv",
+      "description": "Free software emulation of curses in SVR4 and more",
+      "install_id": "ncurses",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "ncurses-6.6",
+      "pname": "ncurses",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:40.704305Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.6",
+      "outputs_to_install": [
+        "man",
+        "man",
+        "man",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/9z4xpp5vr7zs4yw11byfxn76qpb5jghw-ncurses-6.6-dev",
+        "man": "/nix/store/j44gr0l9h6bj39l9gnyy6jv9356mx5yv-ncurses-6.6-man",
+        "out": "/nix/store/51hxzq3l1qd4gy0r4safnj1y9s0hgs68-ncurses-6.6"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "numactl",
+      "broken": false,
+      "derivation": "/nix/store/nm5j8cjli3xffski3rr35pvfppafzpd6-numactl-2.0.18.drv",
+      "description": "Library and tools for non-uniform memory access (NUMA) machines",
+      "install_id": "numactl",
+      "license": "[ GPL-2.0-only, LGPL-2.1 ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "numactl-2.0.18",
+      "pname": "numactl",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:42.649736Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.0.18",
+      "outputs_to_install": [
+        "man",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/aah2pdqrc3lgaqvkdnm3c30xx437yc17-numactl-2.0.18-dev",
+        "man": "/nix/store/qs952630vsy1i69pqk7gdrzv464ayrdr-numactl-2.0.18-man",
+        "out": "/nix/store/fcnnn4w7sxx96liivqdsm1alwyh9x00d-numactl-2.0.18"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "ormolu",
+      "broken": false,
+      "derivation": "/nix/store/4dbykkhrhczskkihz5d8p4aqzzslr0ls-ormolu-0.8.0.2.drv",
+      "description": "A formatter for Haskell source code",
+      "install_id": "ormolu",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "ormolu-0.8.0.2",
+      "pname": "ormolu",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:58.210149Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.8.0.2",
+      "outputs_to_install": [
+        "bin"
+      ],
+      "outputs": {
+        "bin": "/nix/store/vr95hsy4hriij96w9wv3pnf3wvc4mkbl-ormolu-0.8.0.2-bin",
+        "out": "/nix/store/c3is4xrjr7n6qij4fjyhnp9rqwq9sh6f-ormolu-0.8.0.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "ormolu",
+      "broken": false,
+      "derivation": "/nix/store/a96z9q7ayzzvw2zx5k08wvwq4m3c5fhy-ormolu-0.8.0.2.drv",
+      "description": "A formatter for Haskell source code",
+      "install_id": "ormolu",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "ormolu-0.8.0.2",
+      "pname": "ormolu",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:50.043717Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.8.0.2",
+      "outputs_to_install": [
+        "bin"
+      ],
+      "outputs": {
+        "bin": "/nix/store/mgdfkn4844xxbbyxxfpf7q2ijnpf92s7-ormolu-0.8.0.2-bin",
+        "out": "/nix/store/g16acspiknpvdgrfakhqhyrmjwni7xyl-ormolu-0.8.0.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "patchelf",
+      "broken": false,
+      "derivation": "/nix/store/pa40idda5gy218fa7m33a8wmd6szw9s9-patchelf-0.15.2.drv",
+      "description": "Small utility to modify the dynamic linker and RPATH of ELF executables",
+      "install_id": "patchelf",
+      "license": "GPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "patchelf-0.15.2",
+      "pname": "patchelf",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:51.090911Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.15.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/h9wq5kdv1jc9hxmwgn9vh9bwsigmnsj6-patchelf-0.15.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "pkg-config",
+      "broken": false,
+      "derivation": "/nix/store/sgan6cy0xg9dynljwxg4gghnhq9fpyws-pkg-config-wrapper-0.29.2.drv",
+      "description": "Tool that allows packages to find out information about other packages (wrapper script)",
+      "install_id": "pkg-config",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "pkg-config-wrapper-0.29.2",
+      "pname": "pkg-config",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:59:06.805548Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.29.2",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/965s4sf55p20ipr6f2rzf4cc5dvl87cp-pkg-config-wrapper-0.29.2-doc",
+        "man": "/nix/store/505bk44lw9mz7qsyxvc3k041awhlfklj-pkg-config-wrapper-0.29.2-man",
+        "out": "/nix/store/kd2x1bj3gwfh2hb69fk5ym043h2qavxc-pkg-config-wrapper-0.29.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "pkg-config",
+      "broken": false,
+      "derivation": "/nix/store/4f4faayl06s0gvr7cnvcpvrcwh7lxaan-pkg-config-wrapper-0.29.2.drv",
+      "description": "Tool that allows packages to find out information about other packages (wrapper script)",
+      "install_id": "pkg-config",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "pkg-config-wrapper-0.29.2",
+      "pname": "pkg-config",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:07:01.882285Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.29.2",
+      "outputs_to_install": [
+        "man",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/p5h371q0rzgrsphbbwp0y7svcbpa2faf-pkg-config-wrapper-0.29.2-doc",
+        "man": "/nix/store/889b8rd7z3n69b1m89b4sivmnzmmmm2n-pkg-config-wrapper-0.29.2-man",
+        "out": "/nix/store/29d1c5xk6w3rwl7yvdfwl90whslv5h54-pkg-config-wrapper-0.29.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "zlib",
+      "broken": false,
+      "derivation": "/nix/store/565fn49jycmhcwv3jvgvf8j0khpsk4b7-zlib-1.3.2.drv",
+      "description": "Lossless data-compression library",
+      "install_id": "zlib",
+      "license": "Zlib",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "zlib-1.3.2",
+      "pname": "zlib",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T05:01:32.395537Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.3.2",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/jqxhgcps9gsyrvhpl68r3zccyvs26fvq-zlib-1.3.2-dev",
+        "out": "/nix/store/s0y18hp1bzr1vwrasdcrmvkj6py2izpi-zlib-1.3.2",
+        "static": "/nix/store/6lxilazl9wndzj1p4d9v915rxmdrq5kq-zlib-1.3.2-static"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "zlib",
+      "broken": false,
+      "derivation": "/nix/store/i8p91had6cfdr9mlknyv7m7akfdsllfg-zlib-1.3.2.drv",
+      "description": "Lossless data-compression library",
+      "install_id": "zlib",
+      "license": "Zlib",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "zlib-1.3.2",
+      "pname": "zlib",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:10:11.264458Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.3.2",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/k0jg46fv3kwkn14pq3wzryan72rki8yp-zlib-1.3.2-dev",
+        "out": "/nix/store/lw86vj9kfwgvlivg3p8qg2nibpmhmsl9-zlib-1.3.2",
+        "static": "/nix/store/4q3lydn0anq5qyzpxm5xyxnxqxn5nj7c-zlib-1.3.2-static"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "install_id": "ghc",
+      "locked-url": "github:NixOS/nixpkgs/e4b09e47ace7d87de083786b404bf232eb6c89d8?narHash=sha256-RlTsJUvvr8ErjPBsiwrGbbHYW8XbB/oek0Gi78XdWKg%3D",
+      "flake-description": "A collection of packages for the Nix package manager",
+      "locked-flake-attr-path": "legacyPackages.aarch64-darwin.haskell.compiler.ghc967",
+      "derivation": "/nix/store/3ky3x6vfpfn7nymvcq3arnxh4c603jpj-ghc-9.6.7.drv",
+      "outputs": {
+        "doc": "/nix/store/qx2gjxh6s87hrk2g4aba7h1lhiiwild0-ghc-9.6.7-doc",
+        "out": "/nix/store/dkbb1myc69c5la5gly5gds87c3l24g3h-ghc-9.6.7"
+      },
+      "output-names": [
+        "out",
+        "doc"
+      ],
+      "outputs-to-install": [
+        "out"
+      ],
+      "requested-outputs-to-install": [],
+      "package-system": "aarch64-darwin",
+      "system": "aarch64-darwin",
+      "name": "ghc-9.6.7",
+      "pname": "ghc",
+      "version": "9.6.7",
+      "description": "Glasgow Haskell Compiler",
+      "licenses": [
+        "BSD-3-Clause"
+      ],
+      "broken": false,
+      "unfree": false,
+      "priority": 5
+    },
+    {
+      "install_id": "ghc",
+      "locked-url": "github:NixOS/nixpkgs/e4b09e47ace7d87de083786b404bf232eb6c89d8?narHash=sha256-RlTsJUvvr8ErjPBsiwrGbbHYW8XbB/oek0Gi78XdWKg%3D",
+      "flake-description": "A collection of packages for the Nix package manager",
+      "locked-flake-attr-path": "legacyPackages.x86_64-linux.haskell.compiler.ghc967",
+      "derivation": "/nix/store/hpnyp2swkwyz16z0hi4hq7ba2fl0pzkk-ghc-9.6.7.drv",
+      "outputs": {
+        "doc": "/nix/store/vrcjlf8vzpipkqi2c2br7y4q055n74f0-ghc-9.6.7-doc",
+        "out": "/nix/store/p6nn3lxn5jvm40qm01lrbdjnsp6j651n-ghc-9.6.7"
+      },
+      "output-names": [
+        "out",
+        "doc"
+      ],
+      "outputs-to-install": [
+        "out"
+      ],
+      "requested-outputs-to-install": [],
+      "package-system": "x86_64-linux",
+      "system": "x86_64-linux",
+      "name": "ghc-9.6.7",
+      "pname": "ghc",
+      "version": "9.6.7",
+      "description": "Glasgow Haskell Compiler",
+      "licenses": [
+        "BSD-3-Clause"
+      ],
+      "broken": false,
+      "unfree": false,
+      "priority": 5
+    },
+    {
+      "install_id": "hls",
+      "locked-url": "github:NixOS/nixpkgs/e4b09e47ace7d87de083786b404bf232eb6c89d8?narHash=sha256-RlTsJUvvr8ErjPBsiwrGbbHYW8XbB/oek0Gi78XdWKg%3D",
+      "flake-description": "A collection of packages for the Nix package manager",
+      "locked-flake-attr-path": "legacyPackages.aarch64-darwin.haskell.packages.ghc967.haskell-language-server",
+      "derivation": "/nix/store/zcxf3w17h3k8lcg8dqprxf2lh08yiyq9-haskell-language-server-2.10.0.0.drv",
+      "outputs": {
+        "out": "/nix/store/c7z6mi5yq8iqb2nliwfp97dy3m6w4kxf-haskell-language-server-2.10.0.0"
+      },
+      "output-names": [
+        "out"
+      ],
+      "outputs-to-install": [
+        "out"
+      ],
+      "requested-outputs-to-install": [],
+      "package-system": "aarch64-darwin",
+      "system": "aarch64-darwin",
+      "name": "haskell-language-server-2.10.0.0",
+      "pname": "haskell-language-server",
+      "version": "2.10.0.0",
+      "description": "LSP server for GHC",
+      "licenses": [
+        "Apache-2.0"
+      ],
+      "broken": false,
+      "unfree": false,
+      "priority": 5
+    },
+    {
+      "install_id": "hls",
+      "locked-url": "github:NixOS/nixpkgs/e4b09e47ace7d87de083786b404bf232eb6c89d8?narHash=sha256-RlTsJUvvr8ErjPBsiwrGbbHYW8XbB/oek0Gi78XdWKg%3D",
+      "flake-description": "A collection of packages for the Nix package manager",
+      "locked-flake-attr-path": "legacyPackages.x86_64-linux.haskell.packages.ghc967.haskell-language-server",
+      "derivation": "/nix/store/sm0g7vib4p1y41nb1dvflkm4jp287jn1-haskell-language-server-2.10.0.0.drv",
+      "outputs": {
+        "out": "/nix/store/g6dalq3bdfajsjf6s7iljxxv6afpdvf9-haskell-language-server-2.10.0.0"
+      },
+      "output-names": [
+        "out"
+      ],
+      "outputs-to-install": [
+        "out"
+      ],
+      "requested-outputs-to-install": [],
+      "package-system": "x86_64-linux",
+      "system": "x86_64-linux",
+      "name": "haskell-language-server-2.10.0.0",
+      "pname": "haskell-language-server",
+      "version": "2.10.0.0",
+      "description": "LSP server for GHC",
+      "licenses": [
+        "Apache-2.0"
+      ],
+      "broken": false,
+      "unfree": false,
+      "priority": 5
+    }
+  ]
+}
