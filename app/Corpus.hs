@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Corpus
@@ -12,16 +13,15 @@ where
 import Cardano.Crypto.Hash.Class (Hash, hashToStringAsHex, hashWith)
 import Cardano.Crypto.Hash.SHA256 (SHA256)
 import Control.Exception (IOException, try)
-import Control.Monad (foldM, forM, forM_, unless, when)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as BSC
+import Control.Monad (foldM)
+import Data.Aeson (eitherDecodeFileStrict')
+import Data.Aeson.Types (parseEither, withObject, (.!=), (.:), (.:?))
+import Data.ByteString qualified as BS
+import Data.ByteString.Char8 qualified as BSC
 import Data.Char (digitToInt, isHexDigit, isSpace)
-import Data.Either (isLeft)
-import Data.List (intercalate, isInfixOf, sort, stripPrefix)
-import Data.Maybe (isJust, isNothing)
-import Data.Monoid (Sum (..))
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
+import Data.List (isInfixOf, stripPrefix)
+import Data.Map.Strict qualified as Map
+import Data.Set qualified as Set
 import LedgerRules
   ( EraSpec,
     RuleCheck,
@@ -45,25 +45,23 @@ import Paths
 import Report
   ( ConformanceReport (..),
     Failure (..),
+    FailureKind (..),
     Outcome (..),
     Reason,
-    FailureKind (..),
     failureKindLabel,
     writeReport,
   )
-import Data.Aeson (eitherDecodeFileStrict')
-import Data.Map.Strict (Map)
-import Data.Aeson.Types (parseEither, withObject, (.!=), (.:), (.:?))
 import System.Directory
   ( canonicalizePath,
     createDirectoryIfMissing,
+    doesDirectoryExist,
     doesFileExist,
     getPermissions,
     writable,
   )
-import System.Exit (ExitCode (ExitFailure, ExitSuccess), die, exitFailure)
+import System.Exit (ExitCode (..))
 import System.FilePath (takeDirectory, takeFileName, (</>))
-import System.IO (hPutStrLn, stderr)
+import System.IO (hPutStrLn)
 import System.Process (readProcessWithExitCode)
 import Text.Printf (printf)
 
@@ -96,7 +94,7 @@ data DatasetFile = DatasetFile
 -- this per sample rather than by where the generator was aimed: bytes that
 -- satisfy the CDDL but that the decoder rejects are not valid, so they go under
 -- @invalid@ at severity zero, beside the mutations of the same sample.
-data DatasetCategory = Valid | Zap !Int
+data DatasetCategory = Valid | Zap !Int | ManualValid | ManualInvalid
   deriving (Eq)
 
 -- | Directory of a category, relative to its rule directory. Every category is
@@ -106,6 +104,8 @@ data DatasetCategory = Valid | Zap !Int
 categoryName :: DatasetCategory -> FilePath
 categoryName Valid = validCategoryName
 categoryName (Zap level) = invalidCategoryPrefix <> show level
+categoryName ManualValid = manualValidCategoryName
+categoryName ManualInvalid = manualInvalidCategoryName
 
 -- | The one category that must decode.
 validCategoryName :: FilePath
@@ -115,6 +115,23 @@ validCategoryName = "valid"
 -- severity.
 invalidCategoryPrefix :: FilePath
 invalidCategoryPrefix = "invalid-zap-"
+
+-- | Samples written by hand rather than generated.
+--
+-- Generation cannot reach everything. A rule whose values are bare bytes or
+-- unbounded numbers survives almost any byte the mutator flips, a branch
+-- nothing invalid ever opens with is never exercised, and the generator has no
+-- reason to pick the largest value a type admits. Those cases are written out
+-- instead, in two directories mirroring the generated ones, with the references
+-- for the valid samples beside them as everywhere else.
+--
+-- Nothing generates in here, so it is the one part of a corpus a regeneration
+-- has to carry over rather than rebuild.
+manualValidCategoryName :: FilePath
+manualValidCategoryName = "manual-valid"
+
+manualInvalidCategoryName :: FilePath
+manualInvalidCategoryName = "manual-invalid"
 
 -- | Suffix of every sample, and so what a runner globs for.
 inputSuffix :: FilePath
@@ -142,10 +159,14 @@ stripSuffix suffix text = reverse <$> stripPrefix (reverse suffix) (reverse text
 categorySeedLabel :: DatasetCategory -> String
 categorySeedLabel Valid = "valid"
 categorySeedLabel (Zap level) = "invalid/zap-" <> show level
+categorySeedLabel ManualValid = manualValidCategoryName
+categorySeedLabel ManualInvalid = manualInvalidCategoryName
 
 categoryExpectation :: DatasetCategory -> Expectation
 categoryExpectation Valid = MustDecode
 categoryExpectation (Zap _) = MustReject
+categoryExpectation ManualValid = MustDecode
+categoryExpectation ManualInvalid = MustReject
 
 -- | What a sample must do. Its category settles this on its own, which is the
 -- point of putting the generator output the decoder rejects under @invalid@
@@ -160,7 +181,17 @@ zapLevels = [0 .. 3]
 
 -- | Every category a corpus can hold.
 datasetCategories :: [DatasetCategory]
-datasetCategories = Valid : map Zap zapLevels
+datasetCategories = Valid : ManualValid : ManualInvalid : map Zap zapLevels
+
+-- | Categories a rule is not expected to have.
+--
+-- A rule owes generated samples at every severity, so a missing one is a gap
+-- worth naming. Hand written samples exist only where generation could not
+-- reach, so having none is the normal case.
+optionalCategory :: DatasetCategory -> Bool
+optionalCategory ManualValid = True
+optionalCategory ManualInvalid = True
+optionalCategory _ = False
 
 -- | The categories generation is aimed at. Severity zero is not among them: it
 -- is filled by the @valid@ run, from the samples the decoder rejects.
@@ -182,7 +213,8 @@ requireKnownCategories path actual = do
   let known = map categoryName datasetCategories
       unknown = sort $ filter (`notElem` known) actual
   unless (null unknown) $
-    die $ "unexpected entries in '" <> path <> "': " <> show unknown
+    die $
+      "unexpected entries in '" <> path <> "': " <> show unknown
 
 -- | The sample names of one category directory.
 --
@@ -194,13 +226,16 @@ requireSampleNames path fileNames = do
   let recognized name = isJust (inputStem name) || isJust (stripSuffix expectedSuffix name)
       unknown = sort $ filter (not . recognized) fileNames
   unless (null unknown) $
-    die $ "unexpected entries in '" <> path <> "': " <> show unknown
+    die $
+      "unexpected entries in '" <> path <> "': " <> show unknown
   pure [stem | Just stem <- map inputStem fileNames]
 
 -- | Every sample in the corpus, and the categories that are not there.
 listDatasetFiles :: EraSpec -> FilePath -> IO ([DatasetFile], [FilePath])
 listDatasetFiles era root = do
-  actualRules <- listDirectoryChecked root
+  -- Everything in a corpus is a rule directory bar the configuration that
+  -- produced it, which travels with the corpus so a reader can see what made it.
+  actualRules <- filter (/= corpusConfigName) <$> listDirectoryChecked root
   when (null actualRules) $ die $ "dataset contains no rule directories: " <> root
   selectedRules <- forM actualRules $ \ruleName ->
     case lookupRule era ruleName of
@@ -214,7 +249,7 @@ listDatasetFiles era root = do
     requireKnownCategories rulePath actualCategories
     categoryFiles <- forM datasetCategories $ \category ->
       if categoryName category `notElem` actualCategories
-        then pure ([], [ruleName </> categoryName category])
+        then pure ([], [ruleName </> categoryName category | not (optionalCategory category)])
         else do
           let categoryPath = rulePath </> categoryName category
           requireRealDirectory "dataset directory" categoryPath
@@ -230,8 +265,11 @@ listDatasetFiles era root = do
                   datasetFileSample = ruleName </> categoryName category </> stem,
                   datasetFileExpectedPath =
                     case category of
+                      -- A hand written valid sample owes a reference just as a
+                      -- generated one does, and keeps it in the same place.
                       Valid -> Just $ categoryPath </> stem <> expectedSuffix
-                      Zap _ -> Nothing
+                      ManualValid -> Just $ categoryPath </> stem <> expectedSuffix
+                      _ -> Nothing
                 }
           pure (found, [])
     pure (concatMap fst categoryFiles, concatMap snd categoryFiles)
@@ -279,7 +317,7 @@ checkDatasetFile operation datasetFile = do
 verifyFile :: VerificationMode -> DatasetFile -> IO (Either Reason ())
 verifyFile DeserializeOnly datasetFile =
   fmap (fmap $ const ()) $ checkDatasetFile deserializeRule datasetFile
--- | For a sample that must be rejected the only question is whether the decoder
+-- \| For a sample that must be rejected the only question is whether the decoder
 -- rejects it, so ask the decoder directly rather than routing through the
 -- re-encode and normalize steps, whose own failures would read as a rejection.
 verifyFile CheckExpectedOutput datasetFile
@@ -299,8 +337,8 @@ verifyFile CheckExpectedOutput datasetFile = do
           pure $ case expectedResult of
             Left err ->
               Left
-                ( ReferenceUnreadable
-                , "cannot read expected output '" <> expectedPath <> "': " <> show err
+                ( ReferenceUnreadable,
+                  "cannot read expected output '" <> expectedPath <> "': " <> show err
                 )
             Right referenceBytes -> do
               -- The hashed types are checked first: agreeing with the reference
@@ -311,8 +349,8 @@ verifyFile CheckExpectedOutput datasetFile = do
                 then Right ()
                 else
                   Left
-                    ( ReferenceMismatch
-                    , "normalized reserialization differs from '" <> expectedPath <> "'"
+                    ( ReferenceMismatch,
+                      "normalized reserialization differs from '" <> expectedPath <> "'"
                     )
   where
     byteExactCheck original reserialized
@@ -320,8 +358,8 @@ verifyFile CheckExpectedOutput datasetFile = do
       | reserialized == original = Right ()
       | otherwise =
           Left
-            ( ByteExactMismatch
-            , "reserialization differs from the original bytes, which this rule hashes"
+            ( ByteExactMismatch,
+              "reserialization differs from the original bytes, which this rule hashes"
             )
 
 loadDataset :: EraSpec -> FilePath -> IO (FilePath, [DatasetFile], [FilePath])
@@ -348,13 +386,13 @@ reportResult datasetFile result = do
 ruleOutcome :: [(DatasetFile, Either Reason ())] -> Outcome
 ruleOutcome results =
   mempty
-    { generatedTotal = count generated
-    , generatedDecodedReencodedExpected = count decodable
-    , generatedDecodedReencodedActual = count [() | (_, Right ()) <- decodable]
-    , generatedMustBeRejectedExpected = count undecodable
-    , generatedMustBeRejectedActual = count [() | (_, Right ()) <- undecodable]
-    , zapMustBeRejectedExpected = count zaps
-    , zapMustBeRejectedActual = count [() | (_, Right ()) <- zaps]
+    { generatedTotal = count generated,
+      generatedDecodedReencodedExpected = count decodable,
+      generatedDecodedReencodedActual = count [() | (_, Right ()) <- decodable],
+      generatedMustBeRejectedExpected = count undecodable,
+      generatedMustBeRejectedActual = count [() | (_, Right ()) <- undecodable],
+      zapMustBeRejectedExpected = count zaps,
+      zapMustBeRejectedActual = count [() | (_, Right ()) <- zaps]
     }
   where
     count :: [a] -> Sum Int
@@ -365,22 +403,27 @@ ruleOutcome results =
     undecodable = [entry | entry@(file, _) <- results, datasetFileCategory file == Zap 0]
     zaps = [entry | entry@(file, _) <- results, isMutation $ datasetFileCategory file]
     generated = decodable <> undecodable
+    -- A hand written rejection is counted with the mutations: both are samples
+    -- the decoder has to refuse, and the statistics are about that, not about
+    -- where the bytes came from.
     isMutation (Zap level) = level > 0
+    isMutation ManualInvalid = True
+    isMutation ManualValid = False
     isMutation Valid = False
 
 conformanceReport :: EraSpec -> FilePath -> [(DatasetFile, Either Reason ())] -> ConformanceReport
 conformanceReport era corpus results =
   ConformanceReport
-    { reportCorpus = corpus
-    , reportProtocolVersion = eraSpecProtocolVersion era
-    , reportTotals = foldMap snd perRule
-    , reportRules = perRule
-    , reportFailures =
+    { reportCorpus = corpus,
+      reportProtocolVersion = eraSpecProtocolVersion era,
+      reportTotals = foldMap snd perRule,
+      reportRules = perRule,
+      reportFailures =
         [ Failure
-            { failureSample = datasetFileSample file
-            , failureRule = ruleCheckName $ datasetFileRule file
-            , failureClass = failureKindLabel kind
-            , failureReason = message
+            { failureSample = datasetFileSample file,
+              failureRule = ruleCheckName $ datasetFileRule file,
+              failureClass = failureKindLabel kind,
+              failureReason = message
             }
         | (file, Left (kind, message)) <- results
         ]
@@ -414,7 +457,8 @@ verifyDataset era mode datasetDir = do
   -- A rule whose mutations the decoder never rejects is a hole in the suite, so
   -- name it rather than letting the run look complete.
   unless (null absent) $
-    putStrLn $ "  absent, no samples: " <> intercalate ", " (sort absent)
+    putStrLn $
+      "  absent, no samples: " <> intercalate ", " (sort absent)
 
   -- Only the mode that checks references has the counts a conformance report
   -- claims; a deserialize run knows nothing about re-encoding.
@@ -447,6 +491,36 @@ emitReference rule validDir stem = do
       pure $ case writeResult of
         Left err -> Just $ "cannot write expected output '" <> outputPath <> "': " <> show err
         Right () -> Nothing
+
+-- | The hand written samples of an existing corpus, as paths relative to it.
+--
+-- Generation builds a corpus from nothing and refuses to write over one, so
+-- these would be lost on every regeneration unless they are read out first and
+-- written back in. Only the rules being generated are read: a rule that is no
+-- longer a corpus root has no directory to put its samples back into, and
+-- silently dropping them is better than inventing one.
+--
+-- The references are read along with the samples rather than rebuilt: they are
+-- what the valid ones are expected to normalize to, and recomputing them here
+-- would make the corpus agree with the implementation by construction instead
+-- of checking it.
+readManualSamples :: [RuleCheck] -> FilePath -> IO [(FilePath, BS.ByteString)]
+readManualSamples rules corpus = do
+  requireRealDirectory "corpus to adopt from" corpus
+  fmap concat $ forM rules $ \rule ->
+    fmap concat $ forM [ManualValid, ManualInvalid] $ \category -> do
+      let relativeDir = ruleCheckName rule </> categoryName category
+          handWrittenDir = corpus </> relativeDir
+      present <- doesDirectoryExist handWrittenDir
+      if not present
+        then pure []
+        else do
+          fileNames <- listDirectoryChecked handWrittenDir
+          forM fileNames $ \fileName -> do
+            let path = handWrittenDir </> fileName
+            requireCBORFile path
+            bytes <- BS.readFile path
+            pure (relativeDir </> fileName, bytes)
 
 -- | Number of references written for one rule, and the samples that have none.
 emitRuleReferences :: FilePath -> RuleCheck -> IO (Int, Int)
@@ -488,6 +562,8 @@ generateBatch era topSeed rule category batch requested = do
         case category of
           Valid -> []
           Zap level -> ["--zap", show level]
+          ManualValid -> []
+          ManualInvalid -> []
       arguments =
         [ "--era",
           eraSpecName era,
@@ -506,7 +582,7 @@ generateBatch era topSeed rule category batch requested = do
       Left err -> die $ "cannot execute generate-cbor: " <> show err
       Right result -> pure result
 
-  let outputLines = filter (not . all isSpace) $ lines stdoutText
+  let outputLines = filter (not . all isSpace) $ map toString $ lines (toText stdoutText)
       exhausted = "failed to generate a sample after " `isInfixOf` stderrText
       failGeneration message =
         die $
@@ -558,6 +634,10 @@ destinationOf rule category bytes =
     Zap _
       | rejected -> Keep category
       | otherwise -> Drop
+    -- Nothing generates into the hand written categories, so nothing is ever
+    -- routed to them.
+    ManualValid -> Drop
+    ManualInvalid -> Drop
   where
     rejected = isLeft $ deserializeRule rule bytes
 
@@ -697,6 +777,14 @@ samplesFor :: CorpusConfig -> RuleCheck -> Int
 samplesFor config rule =
   fromMaybe (corpusSamples config) (Map.lookup (ruleCheckName rule) (corpusRuleSamples config))
 
+-- | What a corpus keeps its generation parameters in.
+--
+-- Inside the corpus rather than beside it, because two eras need not be
+-- generated the same way: a rule that exists in one and not the other, or that
+-- needs more samples in one, has nowhere to be said in a shared file.
+corpusConfigName :: FilePath
+corpusConfigName = "corpus.json"
+
 readCorpusConfig :: FilePath -> IO CorpusConfig
 readCorpusConfig path = do
   present <- doesFileExist path
@@ -712,8 +800,8 @@ readCorpusConfig path = do
         <*> top .: "samples"
         <*> (Map.mapKeys toString <$> (top .:? "rules" .!= (mempty :: Map Text Int)))
 
-generateDataset :: EraSpec -> FilePath -> CorpusConfig -> IO ()
-generateDataset era requestedOutputRoot config = do
+generateDataset :: EraSpec -> Maybe FilePath -> [String] -> FilePath -> Maybe FilePath -> IO ()
+generateDataset era adoptFrom only requestedOutputRoot configOverride = do
   requireRealDirectory "output directory" requestedOutputRoot
   permissions <- getPermissions requestedOutputRoot
   unless (writable permissions) $ die $ "output directory is not writable: " <> requestedOutputRoot
@@ -721,11 +809,30 @@ generateDataset era requestedOutputRoot config = do
   when (outputRoot == "/") $ die "output directory must not be the filesystem root"
 
   -- The era alone: what seed and how many samples produced it is in the
-  -- configuration, where it can say something different per rule.
+  -- configuration, which the corpus carries rather than its name.
   let destination = outputRoot </> eraSpecName era
-      topSeed = corpusSeed config
-      rules = eraSpecRules era
+      configPath = fromMaybe (destination </> corpusConfigName) configOverride
+  config <- readCorpusConfig configPath
+  configBytes <- BS.readFile configPath
+  let topSeed = corpusSeed config
+      rules = case only of
+        [] -> eraSpecRules era
+        names -> filter ((`elem` names) . ruleCheckName) (eraSpecRules era)
+  -- Naming a rule that is not a root would otherwise generate nothing and look
+  -- like it worked, so it is refused rather than ignored.
+  forM_ only $ \name ->
+    unless (name `elem` map ruleCheckName (eraSpecRules era)) $
+      die $
+        "not a rule of " <> eraSpecName era <> ": " <> name
+  adopted <- traverse (readManualSamples rules) adoptFrom
   (generated, referenced, unreferenced) <- publishDirectory destination $ \staging -> do
+    -- The corpus leaves with the parameters it was made from, so a reader can
+    -- see what produced it and a regeneration starts from the same place.
+    BS.writeFile (staging </> corpusConfigName) configBytes
+    forM_ (fromMaybe [] adopted) $ \(relativePath, bytes) -> do
+      let path = staging </> relativePath
+      createDirectoryIfMissing True (takeDirectory path)
+      BS.writeFile path bytes
     counts <- forM rules $ \rule ->
       forM generatedCategories $ \category -> do
         putStrLn $ "Generating " <> ruleCheckName rule <> "/" <> categoryName category
@@ -737,5 +844,6 @@ generateDataset era requestedOutputRoot config = do
 
   let target = length generatedCategories * sum (map (samplesFor config) rules)
   putStrLn $ "Generated " <> show generated <> "/" <> show target <> " samples in " <> destination
+  putStrLn $ "  hand written adopted:    " <> show (length (fromMaybe [] adopted))
   putStrLn $ "  references emitted:      " <> show referenced
   putStrLn $ "  valid samples without one: " <> show unreferenced

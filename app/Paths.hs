@@ -3,28 +3,27 @@
 -- | Filesystem checks shared by the commands that read or publish trees of
 -- CBOR files. Every check refuses symbolic links, so a corpus cannot smuggle
 -- reads or writes outside the directory it names.
-module Paths (
-  listDirectoryChecked,
-  publishDirectory,
-  requireCBORFile,
-  requireRealDirectory,
-) where
+module Paths
+  ( listDirectoryChecked,
+    publishDirectory,
+    requireCBORFile,
+    requireRealDirectory,
+  )
+where
 
 import Control.Exception (IOException, onException, try)
-import Data.List (sort)
 import System.Directory (listDirectory, makeAbsolute, removePathForcibly, renameDirectory)
-import System.Exit (die)
 import System.FilePath (isAbsolute, takeDirectory, takeExtension, takeFileName)
 import System.IO.Error (isDoesNotExistError)
 import System.IO.Temp (createTempDirectory)
-import System.Posix.Files (
-  FileStatus,
-  getSymbolicLinkStatus,
-  isDirectory,
-  isRegularFile,
-  isSymbolicLink,
-  setFileMode,
- )
+import System.Posix.Files
+  ( FileStatus,
+    getSymbolicLinkStatus,
+    isDirectory,
+    isRegularFile,
+    isSymbolicLink,
+    setFileMode,
+  )
 
 -- | 'Nothing' when the path does not exist; any other failure to inspect it is
 -- fatal, since carrying on would treat an unreadable path as an absent one.
