@@ -14,22 +14,24 @@
 -- that, and only that: map key order, duplicate keys, tags, float widths and
 -- every integer value survive untouched, so a decoder that reads the wrong
 -- thing still fails the comparison.
-module Normalize (
-  normalizeBytes,
-  normalizeShape,
-) where
+module Normalize
+  ( normalizeBytes,
+    definiteStrings,
+    definiteForms,
+    normalizeShape,
+  )
+where
 
 import Codec.CBOR.Read (deserialiseFromBytes)
 import Codec.CBOR.Term (Term (..), decodeTerm, encodeTerm)
 import Codec.CBOR.Write (toStrictByteString)
-import Control.Monad (unless)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Text.Lazy as TL
+import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as BSL
+import Data.Text.Lazy qualified as TL
 
 -- | Collapse every indefinite-length construct, applied recursively. Chunked
 -- strings become one definite string. Integer, tag and length heads are
--- minimised by re-encoding the term.
+-- minimized by re-encoding the term.
 --
 -- Bignum folding is part of that re-encoding rather than a case below. @cborg@
 -- types the @#6.2@ and @#6.3@ headers as integers rather than as tags, so a
@@ -46,8 +48,8 @@ normalizeShape = \case
   TStringI chunks -> TString $ TL.toStrict chunks
   TTagged tag item -> TTagged tag $ normalizeShape item
   other -> other
- where
-  normalizeEntries entries = [(normalizeShape key, normalizeShape value) | (key, value) <- entries]
+  where
+    normalizeEntries entries = [(normalizeShape key, normalizeShape value) | (key, value) <- entries]
 
 decodeWholeTerm :: BS.ByteString -> Either String Term
 decodeWholeTerm bytes =
@@ -59,6 +61,36 @@ decodeWholeTerm bytes =
 
 encodeShape :: Term -> BS.ByteString
 encodeShape = toStrictByteString . encodeTerm
+
+-- | The same item with every string written out in one piece.
+--
+-- Narrower than normalizing on purpose: only the two string types are rewritten,
+-- so a definite or indefinite array or map keeps the form it was generated in
+-- and the obligations about container forms are still answerable.
+definiteStrings :: BS.ByteString -> Either String BS.ByteString
+definiteStrings bytes = encodeShape . joinStrings <$> decodeWholeTerm bytes
+
+joinStrings :: Term -> Term
+joinStrings = \case
+  TBytesI chunks -> TBytes $ BSL.toStrict chunks
+  TStringI chunks -> TString $ TL.toStrict chunks
+  TList items -> TList $ map joinStrings items
+  TListI items -> TListI $ map joinStrings items
+  TMap entries -> TMap $ joinEntries entries
+  TMapI entries -> TMapI $ joinEntries entries
+  TTagged tag item -> TTagged tag $ joinStrings item
+  other -> other
+  where
+    joinEntries entries = [(joinStrings key, joinStrings value) | (key, value) <- entries]
+
+-- | The same item with every string and every container written in one piece.
+--
+-- What to reach for when 'definiteStrings' was not enough: the ledger decodes a
+-- fixed-arity record with a definite length and refuses an indefinite array
+-- there too, so a sample can carry the disagreement in its containers as well
+-- as in its strings.
+definiteForms :: BS.ByteString -> Either String BS.ByteString
+definiteForms bytes = encodeShape . normalizeShape <$> decodeWholeTerm bytes
 
 -- | Normalize one encoded item, checking that the result is already normal.
 --

@@ -1,0 +1,114 @@
+#!/bin/sh
+# Install the dependencies that Cabal cannot fetch: the Cardano Ledger source
+# checkout and the native crypto libraries it links against.
+#
+# Everything lands under `.cache/`, which is not tracked. The revisions come
+# from `Dockerfile`, so a local checkout and the container build the same
+# sources. Each step is skipped when its result is already in place, so this is
+# safe to re-run; it never resets or deletes an existing checkout.
+set -eu
+
+project=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$project"
+prefix=$project/.cache/native
+jobs=${CABAL_JOBS:-4}
+
+for tool in git cabal pkg-config autoreconf make cc; do
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "missing tool: $tool. Run this inside 'flox activate'." >&2
+    exit 1
+  }
+done
+
+revision() {
+  sed -n "s/^ARG $1=\([0-9a-f]\{40\}\).*/\1/p" Dockerfile | head -1
+}
+
+# A shallow fetch of one commit: these repositories are large and only the
+# pinned revision is ever built.
+checkout() {
+  name=$1 url=$2 commit=$3 destination=$project/.cache/$1
+  if [ ! -e "$destination" ]; then
+    echo "fetching $name at $commit"
+    git init -q "$destination"
+    git -C "$destination" remote add origin "$url"
+    git -C "$destination" fetch -q --depth 1 origin "$commit"
+    git -C "$destination" checkout -q --detach FETCH_HEAD
+  fi
+  actual=$(git -C "$destination" rev-parse HEAD)
+  [ "$actual" = "$commit" ] || {
+    echo "$destination is at $actual, expected $commit" >&2
+    exit 1
+  }
+}
+
+checkout cardano-ledger https://github.com/IntersectMBO/cardano-ledger.git "$(revision LEDGER_COMMIT)"
+checkout libsodium https://github.com/input-output-hk/libsodium.git "$(revision LIBSODIUM_COMMIT)"
+checkout secp256k1 https://github.com/bitcoin-core/secp256k1.git "$(revision LIBSECP256K1_COMMIT)"
+checkout blst https://github.com/supranational/blst.git "$(revision LIBBLST_COMMIT)"
+
+mkdir -p "$prefix/lib/pkgconfig" "$prefix/include" "$prefix/bin"
+
+if [ ! -f "$prefix/lib/libsodium.a" ]; then
+  echo "building libsodium"
+  ( cd .cache/libsodium
+    autoreconf -fi
+    ./configure --prefix="$prefix" --with-pic
+    make -j"$jobs"
+    make install )
+fi
+
+if [ ! -f "$prefix/lib/libsecp256k1.a" ]; then
+  echo "building secp256k1"
+  ( cd .cache/secp256k1
+    ./autogen.sh
+    ./configure --prefix="$prefix" --with-pic \
+      --enable-module-schnorrsig --enable-module-recovery --enable-module-ecdh
+    make -j"$jobs"
+    make install )
+fi
+
+if [ ! -f "$prefix/lib/libblst.a" ]; then
+  echo "building blst"
+  ( cd .cache/blst
+    ./build.sh
+    install -m 0644 libblst.a "$prefix/lib/libblst.a"
+    install -m 0644 bindings/blst.h bindings/blst_aux.h "$prefix/include/" )
+fi
+
+# blst ships no pkg-config file, and the Cardano packages look the three
+# libraries up under their '-any' names as well.
+cat > "$prefix/lib/pkgconfig/libblst.pc" <<PC
+prefix=$prefix
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: libblst
+Description: BLS12-381 signature library
+Version: 0.3.14
+Libs: -L\${libdir} -lblst
+Cflags: -I\${includedir}
+PC
+for name in libsodium libsecp256k1 libblst; do
+  cp "$prefix/lib/pkgconfig/$name.pc" "$prefix/lib/pkgconfig/$name-any.pc"
+done
+
+# The checkout supplies source packages to this project's build, so it needs to
+# see this package. A hand edited file is left alone.
+local_project=.cache/cardano-ledger/cabal.project.local
+if [ ! -f "$local_project" ]; then
+  cat > "$local_project" <<PROJECT
+packages: $project
+tests: False
+benchmarks: False
+optimization: False
+package cardano-crypto-praos
+  flags: -external-libsodium-vrf
+PROJECT
+fi
+
+PKG_CONFIG_PATH="$prefix/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
+  pkg-config --print-errors --exists \
+    libsodium-any libsecp256k1-any 'libblst-any >= 0.3.14'
+
+echo "cache ready. Next: just build"

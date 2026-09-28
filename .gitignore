@@ -1,6 +1,5 @@
 .cache/
 .tmp/
-.vscode/
 dataset/.*.tmp-*/
 dataset/coverage
 

@@ -45,13 +45,15 @@ The output will be in the host's `$PWD/dataset/dijkstra`:
 #### Generation parameters
 
 `generate --era ERA OUTPUT_DIR` requires an existing writable output directory, and reads how much to generate from
-`--config FILE`, which defaults to `dataset/corpus.json`:
+the `corpus.json` file. For example `dataset/conway/corpus.json` for Conway contains:
 
 ```json
 {
   "seed": 123,
   "samples": 100,
-  "rules": {}
+  "rules": {
+    "%constr<plutus_data>": 800
+  }
 }
 ```
 
@@ -61,27 +63,36 @@ The output will be in the host's `$PWD/dataset/dijkstra`:
    twenty nine alternatives needs far more samples than a pair of bytes before every branch has been seen, and one
    count in a directory name cannot say so.
 
+Batch seeds and filenames are derived with SHA-256, so identical pinned inputs produce the same corpus.
+The ledger revision and native crypto revisions are pinned in the Dockerfile.
+
+#### Generation flags
+
+ - `--only RULE` generates samples for a single rule
+ - `--adopt-manual CORPUS_DIR` carries the hand written `manual-valid` and `manual-invalid` directories over
+    from an existing corpus
+
+#### Generation process
+
 For each rule the generator produces one batch of CDDL samples and one batch per mutation severity. Each batch receives
 an attempt budget of three times its requested count. If the budget cannot produce enough unique samples, the final
 summary reports the shortfall.
 
-Every sample is then decoded, and where it lands follows from that. A CDDL sample the Haskell decoder accepts goes to
-`valid`; one it rejects goes to `invalid-zap-0`, since satisfying the CDDL is not the same as being decodable. A
-mutation goes to `invalid-zap-<n>` at its severity, unless the decoder accepts it, in which case it is dropped and
-reported: a mutation that decodes tests nothing, because the corpus would be demanding a rejection that is correct not
-to happen.
+Every sample is then decoded, and where it lands follows from that:
+
+ - A CDDL sample the Haskell decoder accepts goes to
+`valid`.
+ - One it rejects goes to `invalid-zap-0`.
+ - A mutation goes to `invalid-zap-<n>` at its severity, unless the decoder accepts it, in which case it is dropped and
+reported.
 
 The generator then writes one `.expected.cbor` file per `valid` sample, beside it and under the same name. The sample
 decoded with the Haskell decoder, is re-encoded and normalized by the rules below (see the Normalization section).
-Every `valid` sample has one, which is what makes `valid` mean valid.
 
-For the rules whose bytes are hashed, listed further down, the `.expected.cbor` file is the re-encoding **without**
-normalization. There the container form is part of the format, so normalizing the reference would discard the very
-thing it exists to pin down. Those files therefore hold the bytes an implementation must reproduce exactly, and in
-practice equal the `.input.cbor` bytes.
-
-Batch seeds and filenames are derived with SHA-256, so identical pinned inputs produce the same corpus.
-The ledger revision and native crypto revisions are pinned in the Dockerfile.
+Every rule is treated the same way, including the ones whose bytes are hashed: the reference answers whether decoding
+kept the information, and the container form it happens to carry means nothing. Where the bytes also have to be
+reproduced exactly, listed further down, the sample itself is the reference for that, since it holds the bytes the
+hash was taken over.
 
 ####  Output layout
 
@@ -149,14 +160,16 @@ Unfortunately this doesn't work for several reasons:
 
 In order to fix those difficulties, we require from each node implementation to:
 
- 1. Normalize its encoded data using the specification below, excepted for the rules specified in the next section.
+ 1. Normalize its encoded data using the specification below.
  2. Compare the normalized result to `<corpus>/<rule>/valid/<name>.expected.cbor`, the reference sitting beside the
     sample `<corpus>/<rule>/valid/<name>.input.cbor`.
+ 3. For the rules in the next section, also compare the re-encoding to the sample bytes, without normalizing either
+    side.
 
 ### Rules whose bytes are hashed
 
-For the rules below encoding part of the format, because the bytes are hashed, so there should be no normalization.
-Indeed, a different encoding would yield a different hash:
+For the rules below the encoding is part of the format, because the bytes are hashed and a different encoding would
+yield a different hash:
 
 ```
 auxiliary_data   native_script  transaction_witness_set
@@ -164,11 +177,17 @@ header           redeemers
 plutus_data      transaction_body
 ```
 
-Re-encoding one of these samples must reproduce the bytes of the `.input.cbor` file exactly. Their `.expected.cbor`
-files are written without normalization, so comparing your re-encoding to the reference is already the exact
-comparison, with no normalization step on either side. `verify expected` additionally checks the re-encoding against
-the `.input.cbor` bytes themselves and reports a failure as `re-encoding differs from the original bytes`, which is
-what guarantees the two files agree.
+Re-encoding one of these samples must reproduce the bytes of the `.input.cbor` file exactly, so that is what you
+compare against: the sample is the only reference that holds the bytes the hash was taken over. The `.expected.cbor`
+file beside it is normalized like every other rule's, and the comparison against it stays exactly what it is
+elsewhere.
+
+How you reproduce those bytes is yours to choose. Replaying the bytes you decoded, or keeping the container form in the
+decoded value and writing it back, both work. What does not work is hashing a re-encoding that differs from the
+original, which yields a hash the rest of the network does not agree with.
+
+`verify expected` makes this check itself, against the sample rather than the reference, and reports a failure as
+`reserialization differs from the original bytes, which this rule hashes`.
 
 #### What belongs on that list
 
