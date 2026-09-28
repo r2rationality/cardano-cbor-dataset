@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$project_dir"
+mode=inplace
+if [ "${1:-}" = --check ]; then
+  mode=check
+  shift
+fi
+
+# With paths, format only the requested files.
+if [ "$#" -gt 0 ]; then
+  exec flox activate -d "$project_dir" -- ormolu --mode "$mode" --check-idempotence "$@"
+fi
+
+# Without paths, format this package's source files and tests.
+exec flox activate -d "$project_dir" -- sh -c '
+  find app test -type f \( -name "*.hs" -o -name "*.lhs" \) \
+    -exec ormolu --mode "$1" --check-idempotence {} +
+' sh "$mode"

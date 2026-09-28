@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+cabal_bin="${TRICORDER_CABAL_BIN:?Run Tricorder through scripts/tricorder}"
+
+if [ "${1:-}" = repl ]; then
+  shift
+  # EvalRunner names only a module. Shared app modules also belong to tests,
+  # so select the executable explicitly to avoid an ambiguous Cabal target.
+  if [ "$#" -eq 1 ]; then
+    module_path=$(printf '%s' "$1" | tr . /)
+    if [ -f "$project_dir/app/$module_path.hs" ]; then
+      set -- "cbor:$1"
+    fi
+  fi
+  has_project=false
+  for arg in "$@"; do
+    case "$arg" in
+      --project-dir|--project-dir=*|--project-file|--project-file=*) has_project=true ;;
+    esac
+  done
+  if [ "$has_project" = false ]; then
+    set -- --project-dir="$project_dir" "$@"
+  fi
+  exec "$cabal_bin" repl --enable-tests --builddir="$project_dir/.cache/tricorder-build" \
+    --repl-options=-ignore-dot-ghci \
+    --repl-options="-ghci-script=$project_dir/scripts/tricorder-tools/ghci.conf" "$@"
+fi
+
+exec "$cabal_bin" "$@"

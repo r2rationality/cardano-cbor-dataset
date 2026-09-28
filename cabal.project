@@ -1,0 +1,15 @@
+-- Dependency settings are separate so Tricorder discovers this package's suites.
+import: cabal.project.ledger
+packages: .
+
+tests: False
+benchmarks: False
+optimization: False
+test-show-details: direct
+write-ghc-environment-files: always
+
+program-options
+  ghc-options: -Werror
+
+package cardano-cbor-dataset
+  tests: True

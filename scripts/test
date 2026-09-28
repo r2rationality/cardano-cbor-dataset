@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$project_dir"
+# Re-run discovery even when a new spec is not in GHC's previous import graph.
+touch test/unit/Spec.hs
+target=cardano-cbor-dataset:tests
+if [ "${1:-}" = --unit ]; then
+  target=cardano-cbor-dataset:test:unit
+  shift
+fi
+exec flox activate -d "$project_dir" -- cabal test \
+  "$target" --enable-tests --test-show-details=direct "$@"

@@ -1,4 +1,16 @@
 .cache/
 .tmp/
+.vscode/
 dataset/.*.tmp-*/
 dataset/coverage
+
+# Keep the shared environment and editor configuration despite global ignores.
+!/.flox/
+!/.flox/**
+!/hie.yaml
+!/.ghci
+!/cabal.project
+!/cabal.project.ledger
+/cabal.project.local
+/dist-newstyle/
+/.ghc.environment.*

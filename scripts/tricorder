@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+tricorder_bin="${FLOX_ENV_CACHE:?Run flox activate first}/tricorder-0.4.1.1-runtime-v1/bin/tricorder"
+
+# Eval sessions in Tricorder 0.4.1.1 omit session.command arguments.
+# Keep the same PATH for dependency preparation and all GHCi sessions.
+export TRICORDER_CABAL_BIN="$(command -v cabal)"
+export PATH="$project_dir/scripts/tricorder-tools:$PATH"
+
+case "${1:-}" in
+  ui|start|restart)
+    # Tricorder allows only 60 seconds for GHCi startup. Compile dependencies
+    # first, with visible errors and no Tricorder timeout.
+    case "${2:-}" in
+      -h|--help) ;;
+      *)
+        cd "$project_dir"
+        cabal build --project-dir="$project_dir" \
+          --builddir="$project_dir/.cache/tricorder-build" \
+          --enable-tests --only-dependencies cardano-cbor-dataset:exe:cbor cardano-cbor-dataset:tests
+        ;;
+    esac
+    ;;
+esac
+
+if [ "$(uname -s)" = Darwin ]; then
+  # Tricorder 0.4.1.1 forks its threaded daemon before initializing the macOS
+  # file watcher. The Objective-C runtime otherwise aborts the child.
+  # Scope this compatibility workaround to Tricorder and its child processes.
+  export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+fi
+
+exec "$tricorder_bin" "$@"
