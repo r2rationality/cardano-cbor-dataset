@@ -38,9 +38,9 @@ docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor generate -
 ```
 The output will be in the host's `$PWD/dataset/dijkstra-123-100`:
 
- - Every file under `valid` must deserialize, and its normalized re-serialization must equal the `expected` file of the
-   same name. There is one such file for every `valid` sample.
- - Every file under `invalid` must be rejected, whichever severity it sits at.
+ - Every `*.input.cbor` file under `valid` must deserialize, and its normalized re-serialization must equal the
+   `*.expected.cbor` file beside it. There is one such file for every `valid` sample.
+ - Every `*.input.cbor` file under an `invalid-zap-<n>` directory must be rejected, whichever severity it sits at.
 
 #### Generation parameters
 
@@ -55,19 +55,19 @@ an attempt budget of three times its requested count. If the budget cannot produ
 summary reports the shortfall.
 
 Every sample is then decoded, and where it lands follows from that. A CDDL sample the Haskell decoder accepts goes to
-`valid`; one it rejects goes to `invalid/zap-0`, since satisfying the CDDL is not the same as being decodable. A
-mutation goes to `invalid/zap-<n>` at its severity, unless the decoder accepts it, in which case it is dropped and
+`valid`; one it rejects goes to `invalid-zap-0`, since satisfying the CDDL is not the same as being decodable. A
+mutation goes to `invalid-zap-<n>` at its severity, unless the decoder accepts it, in which case it is dropped and
 reported: a mutation that decodes tests nothing, because the corpus would be demanding a rejection that is correct not
 to happen.
 
-The generator then writes one `expected` file per `valid` sample, under the same name. The sample decoded with the
-Haskell decoder, is re-encoded and normalized by the rules below (see the Normalization section). Every `valid` sample
-has one, which is what makes `valid` mean valid.
+The generator then writes one `.expected.cbor` file per `valid` sample, beside it and under the same name. The sample
+decoded with the Haskell decoder, is re-encoded and normalized by the rules below (see the Normalization section).
+Every `valid` sample has one, which is what makes `valid` mean valid.
 
-For the rules whose bytes are hashed, listed further down, the `expected` file is the re-encoding **without**
+For the rules whose bytes are hashed, listed further down, the `.expected.cbor` file is the re-encoding **without**
 normalization. There the container form is part of the format, so normalizing the reference would discard the very
-thing it exists to pin down. Those `expected` files therefore hold the bytes an implementation must reproduce exactly,
-and in practice equal the `valid` bytes.
+thing it exists to pin down. Those files therefore hold the bytes an implementation must reproduce exactly, and in
+practice equal the `.input.cbor` bytes.
 
 Batch seeds and filenames are derived with SHA-256, so identical pinned inputs produce the same corpus.
 The ledger revision and native crypto revisions are pinned in the Dockerfile.
@@ -77,14 +77,22 @@ The ledger revision and native crypto revisions are pinned in the Dockerfile.
 ```
 dataset/<era>-<seed>-<count>/
   <rule>/
-    valid/00001-<sha256-prefix>.cbor
-    expected/00001-<sha256-prefix>.cbor
-    invalid/
-      zap-0/00001-<sha256-prefix>.cbor
-      zap-1/00001-<sha256-prefix>.cbor
-      zap-2/00001-<sha256-prefix>.cbor
-      zap-3/00001-<sha256-prefix>.cbor
+    valid/00001-<sha256-prefix>.input.cbor
+    valid/00001-<sha256-prefix>.expected.cbor
+    invalid-zap-0/00001-<sha256-prefix>.input.cbor
+    invalid-zap-1/00001-<sha256-prefix>.input.cbor
+    invalid-zap-2/00001-<sha256-prefix>.input.cbor
+    invalid-zap-3/00001-<sha256-prefix>.input.cbor
 ```
+
+The layout is built around a runner that walks the corpus once:
+
+ - A test input is any `*.input.cbor` file, so a single recursive scan finds every one of them.
+ - What it must do follows from the name of the directory holding it: a sample is expected to decode when, and only
+   when, that directory is named `valid`. Every other directory holds samples that must be rejected, and names the
+   severity in `invalid-zap-<n>` rather than nesting one more level.
+ - The reference for a sample is its own path with `.input.cbor` replaced by `.expected.cbor`, so a runner derives it
+   instead of looking it up in a parallel directory, and needs no second path argument.
 
 Severity zero is the one that is not a mutation: it holds the generator's own samples, unaltered, that the decoder
 rejects. The higher severities hold mutations of increasing aggressiveness. Each directory numbers its files from
@@ -100,7 +108,7 @@ The Haskell node serves as the reference implementation for decoding on-chain da
 decode would trigger a fork in the network. This is why we need to verify that the Haskell node passes the generated test suite
 with no exceptions.
 
-`verify expected` checks that deserialized then reserialized data matches expected data in the `expected/***.cbor` files.
+`verify expected` checks that deserialized then reserialized data matches the data in the `*.expected.cbor` files.
 ```
 docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify expected --era dijkstra /output/dijkstra-123-100
 ```
@@ -128,8 +136,8 @@ Unfortunately this doesn't work for several reasons:
 In order to fix those difficulties, we require from each node implementation to:
 
  1. Normalize its encoded data using the specification below, excepted for the rules specified in the next section.
- 2. Compare the normalized result to `<corpus>/<rule>/expected/<name>.cbor`, the reference for the sample of the same
-    name under `<corpus>/<rule>/valid`.
+ 2. Compare the normalized result to `<corpus>/<rule>/valid/<name>.expected.cbor`, the reference sitting beside the
+    sample `<corpus>/<rule>/valid/<name>.input.cbor`.
 
 ### Rules whose bytes are hashed
 
@@ -142,11 +150,11 @@ header           redeemers
 plutus_data      transaction_body
 ```
 
-Re-encoding one of these samples must reproduce the bytes of the `valid` file exactly. Their `expected` files are
-written without normalization, so comparing your re-encoding to the `expected` file is already the exact comparison,
-with no normalization step on either side. `verify expected` additionally checks the re-encoding against the `valid`
-bytes themselves and reports a failure as `re-encoding differs from the original bytes`, which is what guarantees the
-two files agree.
+Re-encoding one of these samples must reproduce the bytes of the `.input.cbor` file exactly. Their `.expected.cbor`
+files are written without normalization, so comparing your re-encoding to the reference is already the exact
+comparison, with no normalization step on either side. `verify expected` additionally checks the re-encoding against
+the `.input.cbor` bytes themselves and reports a failure as `re-encoding differs from the original bytes`, which is
+what guarantees the two files agree.
 
 #### What belongs on that list
 
@@ -183,11 +191,11 @@ Users of this repository are expected to:
 
  1. Download the corpus for which they want to check the conformance.
  2. Implement their tests using the corpus as an input.
- 3. Each test must check that:
-    1.  every case under `valid` can be decoded.
-    2.  every case under `invalid` is rejected, at every severity including `zap-0`.
-    3.  re-encoded and normalized values match the bytes in the `expected` files.
-    4.  for the rules whose bytes are hashed, listed above, re-encoded values match the `valid` bytes exactly.
+ 3. Each test must check, for every `*.input.cbor` file found by one recursive scan of the corpus, that:
+    1.  every case whose directory is named `valid` can be decoded.
+    2.  every other case is rejected, at every severity including `invalid-zap-0`.
+    3.  re-encoded and normalized values match the bytes of the `.expected.cbor` file beside the sample.
+    4.  for the rules whose bytes are hashed, listed above, re-encoded values match the `.input.cbor` bytes exactly.
  4. Output the results of the tests as a JSON file to a stable URL (for example as a Github artefact).
 
 ## CLI discovery
@@ -269,12 +277,12 @@ The shape used by `totals` and by every value of `rules`. Every field is a `numb
 
 | Field                                  | Meaning                                                                       |
 | -------------------------------------- | ----------------------------------------------------------------------------- |
-| `generated_total`                      | Number of samples generated from the CDDL for this rule, `valid` plus `invalid/zap-0` |
+| `generated_total`                      | Number of samples generated from the CDDL for this rule, `valid` plus `invalid-zap-0` |
 | `generated_decoded_reencoded_expected` | Of those, the ones under `valid`, which must decode, re-encode, and match the reference bytes |
 | `generated_decoded_reencoded_actual`   | The ones that did                                                             |
-| `generated_must_be_rejected_expected`  | The ones under `invalid/zap-0`, which must be rejected even though they satisfy the CDDL |
+| `generated_must_be_rejected_expected`  | The ones under `invalid-zap-0`, which must be rejected even though they satisfy the CDDL |
 | `generated_must_be_rejected_actual`    | The ones that were actually rejected                                          |
-| `zap_must_be_rejected_expected`        | Mutations, `invalid/zap-1` and above, which must be rejected                  |
+| `zap_must_be_rejected_expected`        | Mutations, `invalid-zap-1` and above, which must be rejected                  |
 | `zap_must_be_rejected_actual`          | The ones that were actually rejected                                          |
 
 `generated_total` is the sum of the two `generated_*_expected` fields, so a report whose counts do not add up that way
@@ -286,7 +294,7 @@ Failures are optional. But if they are present, they should provide the followin
 
 | Field    | Meaning                                                                                                    |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `sample` | `<rule>/<category>/<file stem>`, where `<category>` is `valid` or `invalid/zap-<n>` for severity `n`       |
+| `sample` | `<rule>/<category>/<name>`, where `<category>` is `valid` or `invalid-zap-<n>` for severity `n`, and `<name>` carries no suffix |
 | `rule`   | The CDDL rule the sample belongs to                                                                        |
 | `class`  | `reason` collapsed into a stable label                                                                     |
 | `reason` | The full error text, which may span several lines and embed hex dumps                                      |

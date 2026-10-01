@@ -15,8 +15,8 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
 import Data.Char (digitToInt, isHexDigit, isSpace)
 import Data.Either (isLeft)
-import Data.List (intercalate, isInfixOf, sort)
-import Data.Maybe (isNothing)
+import Data.List (intercalate, isInfixOf, sort, stripPrefix)
+import Data.Maybe (isJust, isNothing)
 import Data.Monoid (Sum (..))
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -56,7 +56,7 @@ import System.Directory
     writable,
   )
 import System.Exit (ExitCode (ExitFailure, ExitSuccess), die, exitFailure)
-import System.FilePath (dropExtension, takeDirectory, takeFileName, (</>))
+import System.FilePath (takeDirectory, takeFileName, (</>))
 import System.IO (hPutStrLn, stderr)
 import System.Process (readProcessWithExitCode)
 import Text.Printf (printf)
@@ -77,8 +77,8 @@ data DatasetFile = DatasetFile
   { datasetFilePath :: !FilePath,
     datasetFileRule :: !RuleCheck,
     datasetFileCategory :: !DatasetCategory,
-    -- | @\<rule\>\/\<category\>\/\<file stem\>@, the name a report gives this
-    -- sample. It carries no extension, so a consumer can append its own.
+    -- | @\<rule\>\/\<category\>\/\<name\>@, the name a report gives this
+    -- sample. It carries no suffix, so a consumer can append either of them.
     datasetFileSample :: !FilePath,
     -- | The reference this sample's re-encoding must reproduce. Only a @valid@
     -- sample has one, and every @valid@ sample does: generation puts a sample
@@ -93,21 +93,49 @@ data DatasetFile = DatasetFile
 data DatasetCategory = Valid | Zap !Int
   deriving (Eq)
 
--- | Path of a category relative to its rule directory.
+-- | Directory of a category, relative to its rule directory. Every category is
+-- exactly one directory deep, so a runner finds the whole corpus with a single
+-- recursive walk and reads the expectation off the directory name: a sample
+-- under @valid@ must decode, a sample under anything else must be rejected.
 categoryName :: DatasetCategory -> FilePath
 categoryName Valid = validCategoryName
-categoryName (Zap level) = invalidCategoryName </> zapLevelName level
+categoryName (Zap level) = invalidCategoryPrefix <> show level
 
 -- | The one category that must decode.
 validCategoryName :: FilePath
 validCategoryName = "valid"
 
--- | Parent of every category that must be rejected.
-invalidCategoryName :: FilePath
-invalidCategoryName = "invalid"
+-- | Shared by every category that must be rejected, completed by the mutation
+-- severity.
+invalidCategoryPrefix :: FilePath
+invalidCategoryPrefix = "invalid-zap-"
 
-zapLevelName :: Int -> FilePath
-zapLevelName level = "zap-" <> show level
+-- | Suffix of every sample, and so what a runner globs for.
+inputSuffix :: FilePath
+inputSuffix = ".input.cbor"
+
+-- | Suffix of a reference encoding. It sits beside the sample it belongs to and
+-- is named after it, so a runner derives the reference path from the sample
+-- path rather than looking it up in a second directory.
+expectedSuffix :: FilePath
+expectedSuffix = ".expected.cbor"
+
+-- | The name a sample and its reference share, or 'Nothing' for a file that is
+-- not a sample.
+inputStem :: FilePath -> Maybe FilePath
+inputStem = stripSuffix inputSuffix
+
+stripSuffix :: String -> String -> Maybe String
+stripSuffix suffix text = reverse <$> stripPrefix (reverse suffix) (reverse text)
+
+-- | What a category contributes to the generator seed.
+--
+-- Deliberately not 'categoryName'. The seed decides which bytes a run produces,
+-- so tying it to a directory name would mean that moving the files changes the
+-- corpus a given seed regenerates.
+categorySeedLabel :: DatasetCategory -> String
+categorySeedLabel Valid = "valid"
+categorySeedLabel (Zap level) = "invalid/zap-" <> show level
 
 categoryExpectation :: DatasetCategory -> Expectation
 categoryExpectation Valid = MustDecode
@@ -133,34 +161,35 @@ datasetCategories = Valid : map Zap zapLevels
 generatedCategories :: [DatasetCategory]
 generatedCategories = Valid : map Zap (filter (> 0) zapLevels)
 
--- | Sibling of the sample categories, holding the normalized reference
--- encoding of every @valid@ sample under the same file name.
-expectedCategoryName :: FilePath
-expectedCategoryName = "expected"
-
 -- | Reject entries that name no category at all.
 --
 -- No directory is demanded, not even @valid@. Version control tracks no empty
 -- directory, so a rule whose samples all land somewhere else arrives without
--- the one it emptied: a rule the decoder never accepts has no @valid@ and no
--- @expected@, and a rule whose mutations it never rejects is missing a
--- severity. Treating any of those as a broken corpus stopped verification of
--- every other rule, so an absent directory counts as zero samples and is named
--- in the run summary instead. A corpus with nothing in it at all is still
--- caught, by the check that it holds at least one file.
-requireKnownCategories :: FilePath -> [FilePath] -> [FilePath] -> IO ()
-requireKnownCategories path actual severities = do
-  let known = [validCategoryName, expectedCategoryName, invalidCategoryName]
+-- the one it emptied: a rule the decoder never accepts has no @valid@, and a
+-- rule whose mutations it never rejects is missing a severity. Treating any of
+-- those as a broken corpus stopped verification of every other rule, so an
+-- absent directory counts as zero samples and is named in the run summary
+-- instead. A corpus with nothing in it at all is still caught, by the check
+-- that it holds at least one file.
+requireKnownCategories :: FilePath -> [FilePath] -> IO ()
+requireKnownCategories path actual = do
+  let known = map categoryName datasetCategories
       unknown = sort $ filter (`notElem` known) actual
-      unknownSeverities = sort $ filter (`notElem` map zapLevelName zapLevels) severities
   unless (null unknown) $
     die $ "unexpected entries in '" <> path <> "': " <> show unknown
-  unless (null unknownSeverities) $
-    die $
-      "unexpected entries in '"
-        <> (path </> invalidCategoryName)
-        <> "': "
-        <> show unknownSeverities
+
+-- | The sample names of one category directory.
+--
+-- A reference sits beside the sample it belongs to, so the directory holds the
+-- two suffixes and nothing else. Anything else is a corpus assembled by hand or
+-- by an older generator, and reporting it is more use than walking past it.
+requireSampleNames :: FilePath -> [FilePath] -> IO [FilePath]
+requireSampleNames path fileNames = do
+  let recognized name = isJust (inputStem name) || isJust (stripSuffix expectedSuffix name)
+      unknown = sort $ filter (not . recognized) fileNames
+  unless (null unknown) $
+    die $ "unexpected entries in '" <> path <> "': " <> show unknown
+  pure [stem | Just stem <- map inputStem fileNames]
 
 -- | Every sample in the corpus, and the categories that are not there.
 listDatasetFiles :: EraSpec -> FilePath -> IO ([DatasetFile], [FilePath])
@@ -176,35 +205,26 @@ listDatasetFiles era root = do
         rulePath = root </> ruleName
     requireRealDirectory "dataset directory" rulePath
     actualCategories <- listDirectoryChecked rulePath
-    severities <-
-      if invalidCategoryName `elem` actualCategories
-        then do
-          requireRealDirectory "dataset directory" $ rulePath </> invalidCategoryName
-          listDirectoryChecked $ rulePath </> invalidCategoryName
-        else pure []
-    requireKnownCategories rulePath actualCategories severities
-    let present Valid = validCategoryName `elem` actualCategories
-        present (Zap level) = zapLevelName level `elem` severities
+    requireKnownCategories rulePath actualCategories
     categoryFiles <- forM datasetCategories $ \category ->
-      if not $ present category
+      if categoryName category `notElem` actualCategories
         then pure ([], [ruleName </> categoryName category])
         else do
           let categoryPath = rulePath </> categoryName category
           requireRealDirectory "dataset directory" categoryPath
-          fileNames <- listDirectoryChecked categoryPath
-          found <- forM fileNames $ \fileName -> do
-            let path = categoryPath </> fileName
+          stems <- listDirectoryChecked categoryPath >>= requireSampleNames categoryPath
+          found <- forM stems $ \stem -> do
+            let path = categoryPath </> stem <> inputSuffix
             requireCBORFile path
             pure $
               DatasetFile
                 { datasetFilePath = path,
                   datasetFileRule = rule,
                   datasetFileCategory = category,
-                  datasetFileSample =
-                    ruleName </> categoryName category </> dropExtension fileName,
+                  datasetFileSample = ruleName </> categoryName category </> stem,
                   datasetFileExpectedPath =
                     case category of
-                      Valid -> Just $ rulePath </> expectedCategoryName </> fileName
+                      Valid -> Just $ categoryPath </> stem <> expectedSuffix
                       Zap _ -> Nothing
                 }
           pure (found, [])
@@ -315,7 +335,7 @@ reportResult datasetFile result = do
 
 -- | One rule's counts. @generated@ covers everything the CDDL generator
 -- produced, which the layout splits in two: a @valid@ sample must decode,
--- re-encode and match its reference, and an @invalid\/zap-0@ sample is the same
+-- re-encode and match its reference, and an @invalid-zap-0@ sample is the same
 -- generator output that the decoder rejects, since satisfying the CDDL does not
 -- make bytes decodable. @zap@ counts the mutations of severity one and above,
 -- which must always be rejected.
@@ -409,14 +429,14 @@ verifyDataset era mode datasetDir = do
 -- bytes the ledger decoder rejects, or the re-encoding has no reproducible
 -- normal form. Neither stops generation, since the sample itself is still a
 -- legitimate decoder test case.
-emitReference :: RuleCheck -> FilePath -> FilePath -> FilePath -> IO (Maybe String)
-emitReference rule validDir expectedDir fileName = do
-  readResult <- try (BS.readFile $ validDir </> fileName) :: IO (Either IOException BS.ByteString)
+emitReference :: RuleCheck -> FilePath -> FilePath -> IO (Maybe String)
+emitReference rule validDir stem = do
+  readResult <- try (BS.readFile $ validDir </> stem <> inputSuffix) :: IO (Either IOException BS.ByteString)
   case fmap (expectedBytes rule) readResult of
     Left err -> pure $ Just $ "cannot read file: " <> show err
     Right (Left message) -> pure $ Just message
     Right (Right (_, bytes)) -> do
-      let outputPath = expectedDir </> fileName
+      let outputPath = validDir </> stem <> expectedSuffix
       writeResult <- try (BS.writeFile outputPath bytes) :: IO (Either IOException ())
       pure $ case writeResult of
         Left err -> Just $ "cannot write expected output '" <> outputPath <> "': " <> show err
@@ -425,16 +445,14 @@ emitReference rule validDir expectedDir fileName = do
 -- | Number of references written for one rule, and the samples that have none.
 emitRuleReferences :: FilePath -> RuleCheck -> IO (Int, Int)
 emitRuleReferences staging rule = do
-  let ruleDir = staging </> ruleCheckName rule
-      validDir = ruleDir </> categoryName Valid
-      expectedDir = ruleDir </> expectedCategoryName
-  createDirectoryIfMissing True expectedDir
+  let validDir = staging </> ruleCheckName rule </> categoryName Valid
+  createDirectoryIfMissing True validDir
   fileNames <- listDirectoryChecked validDir
-  failures <- forM fileNames $ \fileName -> do
-    outcome <- emitReference rule validDir expectedDir fileName
+  failures <- forM [stem | Just stem <- map inputStem fileNames] $ \stem -> do
+    outcome <- emitReference rule validDir stem
     case outcome of
       Just message ->
-        hPutStrLn stderr $ "FAIL " <> (validDir </> fileName) <> " (" <> message <> ")"
+        hPutStrLn stderr $ "FAIL " <> (validDir </> stem <> inputSuffix) <> " (" <> message <> ")"
       Nothing -> pure ()
     pure outcome
   pure (length [() | Nothing <- failures], length [() | Just _ <- failures])
@@ -449,7 +467,7 @@ seedFor topSeed rule category batch =
     [(value, "")] -> fromInteger $ value `mod` 1500000000
     _ -> error "internal error: SHA-256 digest is not hexadecimal"
   where
-    digest = sha256Hex $ BSC.pack $ show topSeed <> "|" <> rule <> "|" <> categoryName category <> "|" <> show batch
+    digest = sha256Hex $ BSC.pack $ show topSeed <> "|" <> rule <> "|" <> categorySeedLabel category <> "|" <> show batch
 
 data BatchResult = BatchResult
   { batchLines :: ![String],
@@ -553,7 +571,7 @@ addGeneratedLine ruleDir rule category (Accumulated written rejected dropped see
   let digest = sha256Hex bytes
       seenNow = Set.insert digest seen
       writeTo destination position = do
-        let fileName = printf "%05d-%s.cbor" position (take 16 digest) :: FilePath
+        let fileName = printf "%05d-%s%s" position (take 16 digest) inputSuffix :: FilePath
             path = ruleDir </> categoryName destination </> fileName
         writeResult <- try (BS.writeFile path bytes) :: IO (Either IOException ())
         case writeResult of
@@ -672,7 +690,7 @@ generateDataset era requestedOutputRoot topSeed count = do
         putStrLn $ "Generating " <> ruleCheckName rule <> "/" <> categoryName category
         addCases staging era topSeed rule category count
     references <- forM rules $ \rule -> do
-      putStrLn $ "Emitting " <> ruleCheckName rule <> "/" <> expectedCategoryName
+      putStrLn $ "Emitting references for " <> ruleCheckName rule
       emitRuleReferences staging rule
     pure (sum $ concat counts, sum $ map fst references, sum $ map snd references)
 
