@@ -19,7 +19,6 @@ import Options.Applicative
   ( Parser,
     ParserInfo,
     ReadM,
-    argument,
     command,
     customExecParser,
     eitherReader,
