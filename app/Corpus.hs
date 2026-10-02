@@ -14,7 +14,7 @@ import Cardano.Crypto.Hash.Class (Hash, hashToStringAsHex, hashWith)
 import Cardano.Crypto.Hash.SHA256 (SHA256)
 import Control.Exception (IOException, try)
 import Control.Monad (foldM)
-import Data.Aeson (eitherDecodeFileStrict')
+import Data.Aeson (FromJSON (..), eitherDecodeFileStrict')
 import Data.Aeson.Types (parseEither, withObject, (.!=), (.:), (.:?))
 import Data.ByteString qualified as BS
 import Data.ByteString.Char8 qualified as BSC
@@ -412,6 +412,44 @@ loadDataset era datasetDir = do
   root <- canonicalizePath datasetDir
   listDatasetFiles era root
 
+-- | Let a sample the corpus waives decode without failing the run.
+--
+-- A sample is valid or invalid by the specification, never by what the
+-- reference implementation happens to do with it. Where the two disagree the
+-- corpus says so, in the configuration, with a reason: the bytes stay under
+-- @manual-invalid@, where another implementation reads them as a case to
+-- refuse, and this run stops short of demanding that the reference refuse them
+-- too.
+--
+-- Only in that direction. A waived sample the decoder does refuse is a waiver
+-- that has outlived its reason, and saying so is the point of writing one down.
+tolerate :: Bool -> Either Reason () -> IO (Either Reason ())
+tolerate False result = pure result
+tolerate True (Left (DecodeSucceeded, _)) = pure (Right ())
+tolerate True result = pure result
+
+-- | The samples named by the corpus configuration's waivers.
+newtype WaivedSamples = WaivedSamples {waivedSamples :: [FilePath]}
+
+instance FromJSON WaivedSamples where
+  parseJSON = withObject "corpus configuration" $ \top -> do
+    declared <- top .:? "waivers" .!= []
+    WaivedSamples . concat <$> traverse named declared
+    where
+      named = withObject "waiver" $ \waiver -> waiver .:? "samples" .!= []
+
+-- | The samples the corpus configuration says the reference decoder does not
+-- refuse, named the way a dataset names a sample.
+readWaivedSamples :: FilePath -> IO (Set FilePath)
+readWaivedSamples datasetDir = do
+  let path = datasetDir </> corpusConfigName
+  present <- doesFileExist path
+  if not present
+    then pure mempty
+    else do
+      parsed <- eitherDecodeFileStrict' path
+      either (die . (("cannot read '" <> path <> "': ") <>)) (pure . Set.fromList . waivedSamples) parsed
+
 reportResult :: DatasetFile -> Either Reason a -> IO (Either Reason a)
 reportResult datasetFile result = do
   case result of
@@ -423,12 +461,18 @@ reportResult datasetFile result = do
 verifyDataset :: EraSpec -> VerificationMode -> FilePath -> IO ()
 verifyDataset era mode datasetDir = do
   (files, absent) <- loadDataset era datasetDir
+  deviations <- readWaivedSamples datasetDir
   results <- forM files $ \datasetFile -> do
-    outcome <- verifyFile mode datasetFile >>= reportResult datasetFile
+    let waived = datasetFileSample datasetFile `Set.member` deviations
+    outcome <- verifyFile mode datasetFile >>= tolerate waived >>= reportResult datasetFile
     pure (datasetFile, outcome)
 
   putStrLn $ "Checked " <> show (length files) <> " " <> eraSpecName era <> " CBOR files"
   putStrLn $ "  mode:             " <> verificationModeName mode
+  let deviated = length [() | file <- files, datasetFileSample file `Set.member` deviations]
+  when (deviated /= 0) $
+    putStrLn $
+      "  waived:           " <> show deviated <> " the reference decoder does not refuse"
   -- A rule whose mutations the decoder never rejects is a hole in the suite, so
   -- name it rather than letting the run look complete.
   unless (null absent) $
