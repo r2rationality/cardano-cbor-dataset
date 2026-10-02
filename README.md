@@ -269,58 +269,52 @@ plan is cached.
 
 ### Report output format
 
-The conformance report is expected to be a JSON file with the following top fields:
+A completed `verify expected` run writes two files beside the corpus, under
+`reports/<corpus>/`:
 
-**Top level**
+- `haskell-latest.json`: raw per-sample results.
+- `haskell-latest.md`: a Markdown summary produced from that JSON by `scripts/make-report.py`.
 
-| Field              | Type                | Meaning                                               |
-| ------------------ | ------------------- | ----------------------------------------------------- |
-| `corpus`           | string              | The dataset that was run, e.g. `conway`       |
-| `protocol_version` | string              | The protocol version decoded against, e.g. `11.0`     |
-| `successful`       | bool                | `true` when the run had no failure at all             |
-| `totals`           | Outcome             | The per-rule outcomes summed                          |
-| `rules`            | map rule -> Outcome | One outcome per CDDL rule, keyed by rule name, sorted |
-| `failures`         | array of failures   | One entry per failing sample                          |
+For example, verifying `/output/conway` writes
+`/output/reports/conway/haskell-latest.json` and
+`/output/reports/conway/haskell-latest.md`. Both are written even when samples
+fail; the verifier still exits unsuccessfully. Report-generation failures also
+cause an unsuccessful exit. If Markdown generation fails, the new JSON remains
+available for diagnosis and regeneration.
 
-**Outcome**
+The JSON is a single object keyed by corpus-relative sample paths, using forward
+slashes and including the `.input.cbor` suffix. Every sample has either `true`
+when it meets its expectation or an error message string:
 
-The shape used by `totals` and by every value of `rules`. Every field is a `number`:
-
-| Field                                  | Meaning                                                                       |
-| -------------------------------------- | ----------------------------------------------------------------------------- |
-| `generated_total`                      | Number of samples generated from the CDDL for this rule, `valid` plus `invalid-zap-0` |
-| `generated_decoded_reencoded_expected` | Of those, the ones under `valid`, which must decode, re-encode, and match the reference bytes |
-| `generated_decoded_reencoded_actual`   | The ones that did                                                             |
-| `generated_must_be_rejected_expected`  | The ones under `invalid-zap-0`, which must be rejected even though they satisfy the CDDL |
-| `generated_must_be_rejected_actual`    | The ones that were actually rejected                                          |
-| `zap_must_be_rejected_expected`        | Mutations, `invalid-zap-1` and above, which must be rejected                  |
-| `zap_must_be_rejected_actual`          | The ones that were actually rejected                                          |
-
-`generated_total` is the sum of the two `generated_*_expected` fields, so a report whose counts do not add up that way
-is reporting something other than this layout.
-
-**Failure**
-
-Failures are optional. But if they are present, they should provide the following fields:
-
-| Field    | Meaning                                                                                                    |
-| -------- | ---------------------------------------------------------------------------------------------------------- |
-| `sample` | `<rule>/<category>/<name>`, where `<category>` is `valid` or `invalid-zap-<n>` for severity `n`, and `<name>` carries no suffix |
-| `rule`   | The CDDL rule the sample belongs to                                                                        |
-| `class`  | `reason` collapsed into a stable label                                                                     |
-| `reason` | The full error text, which may span several lines and embed hex dumps                                      |
-
-For example:
 ```json
 {
-  "sample": "auxiliary_data/valid/00003-2f2bacfd41c291d4",
-  "rule": "auxiliary_data",
-  "class": "re-encoding differs from the cbor reference",
-  "reason": "re-encoding differs from the cbor reference\n\nexpected\n\nd90103a400a11be2de…"
+  "auxiliary_data/valid/00003-2f2bacfd41c291d4.input.cbor": true,
+  "auxiliary_data/invalid-zap-1/00001-example.input.cbor": "decode: succeeded when expected to fail"
 }
 ```
 
+For invalid samples, `true` means the decoder rejected the input. For valid
+samples it means decoding, re-encoding, reference comparison, and any required
+byte-exact comparison all passed. There are no metadata or aggregate fields.
+This replaces the previous aggregate `latest.json` format.
 
+Error strings use `<category>: <message>`, with the same core categories as
+the TurboCardano results: `decode` for decoding or input-read failures, `encode`
+for normalization, re-encoding comparisons or reference-read failures, and
+`unsupported` for rules the selected Haskell era does not implement. Unsupported
+samples fail in both valid and invalid categories; lack of support does not count
+as rejecting an invalid input.
+
+The Markdown report shows valid/invalid success percentages and counts per rule,
+plus totals and the number of failed or missing results. Error messages remain
+in the JSON. Missing results count against the success rate; result paths absent
+from the corpus are rejected.
+
+To regenerate the Markdown without running verification:
+
+```sh
+python3 scripts/make-report.py dataset/conway dataset/reports/conway/haskell-latest.json > dataset/reports/conway/haskell-latest.md
+```
 
 # Coverage reports
 
