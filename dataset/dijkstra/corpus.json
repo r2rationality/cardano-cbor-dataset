@@ -1,0 +1,105 @@
+{
+  "seed": 123,
+  "samples": 100,
+  "rules": {
+    "%constr<plutus_data>": 800,
+    "block": 600,
+    "certificate": 600,
+    "gov_action": 600,
+    "native_script": 600
+  },
+  "divergences": [
+    {
+      "rule": "redeemers",
+      "path": ".",
+      "obligation": {"tag": "DuplicateKey"},
+      "kind": "incorrect-specification",
+      "samples": [
+        "redeemers/manual-valid/repeated-key"
+      ],
+      "reason": "No decoder refuses a repeated key. The decoded value keeps one entry, and the bytes are re-encoded as they came."
+    },
+    {
+      "rule": "voting_procedures",
+      "path": ".",
+      "obligation": {
+        "tag": "TooFew",
+        "contents": 1
+      },
+      "kind": "verified-by-parent",
+      "reason": "VotingProcedures decodes an empty map. The transaction body decoder refuses it at key 19, in a transaction and in a sub-transaction.",
+      "samples": [
+        "voting_procedures/manual-invalid/empty"
+      ]
+    },
+    {
+      "rule": "withdrawals",
+      "path": ".",
+      "obligation": {
+        "tag": "TooFew",
+        "contents": 1
+      },
+      "kind": "verified-by-parent",
+      "reason": "Withdrawals decodes an empty map. The transaction body decoder refuses it at key 5, in a transaction and in a sub-transaction.",
+      "samples": [
+        "withdrawals/manual-invalid/empty"
+      ]
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "unit_interval",
+      "path": "gen.tag30.array[1]",
+      "obligation": {"tag": "AcceptBoundary", "contents": 0},
+      "samples": [
+        "unit_interval/manual-invalid/denominator-zero"
+      ],
+      "reason": "A zero denominator is valid CDDL, but it makes no ratio, so the decoder refuses it."
+    },
+    {
+      "rule": "metadatum",
+      "path": "choice[0:map]",
+      "obligation": {"tag": "DuplicateKey"},
+      "kind": "incorrect-specification",
+      "samples": [
+        "metadatum/manual-valid/repeated-key"
+      ],
+      "reason": "The ledger keeps a metadata map as a list of pairs, so a repeated key stays as written. Nothing refuses it."
+    },
+    {
+      "rule": "plutus_data",
+      "path": "choice[1:map]",
+      "obligation": {"tag": "DuplicateKey"},
+      "kind": "incorrect-specification",
+      "samples": [
+        "plutus_data/manual-valid/repeated-key"
+      ],
+      "reason": "A plutus data map is a list of pairs that scripts read in order, so a repeated key stays as written. Nothing refuses it."
+    },
+    {
+      "rule": "account_balance_intervals",
+      "path": ".",
+      "obligation": {
+        "tag": "TooFew",
+        "contents": 1
+      },
+      "kind": "verified-by-parent",
+      "samples": [
+        "account_balance_intervals/manual-invalid/empty"
+      ],
+      "reason": "AccountBalanceIntervals decodes an empty map. The transaction body decoder refuses it at key 26, in a transaction and in a sub-transaction."
+    },
+    {
+      "rule": "transaction_witness_set",
+      "path": "map{2}.occur0.value.validator.gen.choice[0:tag258].tag258",
+      "obligation": {
+        "tag": "TooFew",
+        "contents": 1
+      },
+      "kind": "incorrect-specification",
+      "samples": [
+        "transaction_witness_set/manual-valid/bootstrap-witnesses-empty"
+      ],
+      "reason": "The Dijkstra witness set decodes an empty set of bootstrap witnesses, in a witness set and in a transaction. Conway refuses it."
+    }
+  ]
+}

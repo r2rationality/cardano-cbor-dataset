@@ -1,0 +1,236 @@
+{
+  "seed": 123,
+  "samples": 100,
+  "rules": {
+    "%constr<plutus_data>": 800,
+    "block": 600,
+    "certificate": 600,
+    "gov_action": 600,
+    "native_script": 600
+  },
+  "divergences": [
+    {
+      "rule": "metadatum",
+      "path": "choice[0:map]",
+      "obligation": {"tag": "DuplicateKey"},
+      "kind": "incorrect-specification",
+      "samples": [
+        "metadatum/manual-valid/repeated-key"
+      ],
+      "reason": "The ledger keeps a metadata map as a list of pairs, so a repeated key stays as written. Nothing refuses it."
+    },
+    {
+      "rule": "plutus_data",
+      "path": "choice[1:map]",
+      "obligation": {"tag": "DuplicateKey"},
+      "kind": "incorrect-specification",
+      "samples": [
+        "plutus_data/manual-valid/repeated-key"
+      ],
+      "reason": "A plutus data map is a list of pairs that scripts read in order, so a repeated key stays as written. Nothing refuses it."
+    },
+    {
+      "rule": "redeemers",
+      "path": "choice[1:map]",
+      "obligation": {"tag": "DuplicateKey"},
+      "kind": "incorrect-specification",
+      "samples": [
+        "redeemers/manual-valid/repeated-key"
+      ],
+      "reason": "No decoder refuses a repeated key. The decoded value keeps one entry, and the bytes are re-encoded as they came."
+    },
+    {
+      "rule": "certificates",
+      "path": "validator.gen.choice[0:tag258].tag258",
+      "obligation": {"tag": "TooFew", "contents": 1},
+      "kind": "verified-by-parent",
+      "reason": "OSet decodes an empty set. The transaction body decoder refuses it at key 4, the only field that carries certificates.",
+      "samples": [
+        "certificates/manual-invalid/bare-empty",
+        "certificates/manual-invalid/tagged-empty"
+      ]
+    },
+    {
+      "rule": "certificates",
+      "path": "validator.gen.choice[1:array]",
+      "obligation": {"tag": "TooFew", "contents": 1},
+      "kind": "verified-by-parent",
+      "reason": "OSet decodes an empty set. The transaction body decoder refuses it at key 4, the only field that carries certificates.",
+      "samples": [
+        "certificates/manual-invalid/bare-empty",
+        "certificates/manual-invalid/tagged-empty"
+      ]
+    },
+    {
+      "rule": "proposal_procedures",
+      "path": "validator.gen.choice[0:tag258].tag258",
+      "obligation": {"tag": "TooFew", "contents": 1},
+      "kind": "verified-by-parent",
+      "reason": "OSet decodes an empty set. The transaction body decoder refuses it at key 20, the only field that carries proposal procedures.",
+      "samples": [
+        "proposal_procedures/manual-invalid/bare-empty",
+        "proposal_procedures/manual-invalid/tagged-empty"
+      ]
+    },
+    {
+      "rule": "proposal_procedures",
+      "path": "validator.gen.choice[1:array]",
+      "obligation": {"tag": "TooFew", "contents": 1},
+      "kind": "verified-by-parent",
+      "reason": "OSet decodes an empty set. The transaction body decoder refuses it at key 20, the only field that carries proposal procedures.",
+      "samples": [
+        "proposal_procedures/manual-invalid/bare-empty",
+        "proposal_procedures/manual-invalid/tagged-empty"
+      ]
+    },
+    {
+      "rule": "mint",
+      "path": ".",
+      "obligation": {"tag": "TooFew", "contents": 1},
+      "kind": "verified-by-parent",
+      "reason": "MultiAsset decodes an empty map. The transaction body decoder refuses it at key 9, the only field that carries a mint.",
+      "samples": [
+        "mint/manual-invalid/empty"
+      ]
+    },
+    {
+      "rule": "voting_procedures",
+      "path": ".",
+      "obligation": {"tag": "TooFew", "contents": 1},
+      "kind": "verified-by-parent",
+      "reason": "VotingProcedures decodes an empty map. The transaction body decoder refuses it at key 19, the only field that carries voting procedures.",
+      "samples": [
+        "voting_procedures/manual-invalid/empty"
+      ]
+    },
+    {
+      "rule": "withdrawals",
+      "path": ".",
+      "obligation": {"tag": "TooFew", "contents": 1},
+      "kind": "verified-by-parent",
+      "reason": "Withdrawals decodes an empty map. The transaction body decoder refuses it at key 5, the only field that carries withdrawals.",
+      "samples": [
+        "withdrawals/manual-invalid/empty"
+      ]
+    },
+    {
+      "kind": "decoder-exception",
+      "samples": [
+        "block/manual-invalid/invalid-transactions-unsorted",
+        "block/manual-invalid/invalid-transactions-repeated"
+      ],
+      "reason": "The block decoder expects the indexes of the invalid transactions sorted and without a repeat. For [1, 0] or [0, 0], alignedValidFlags raises an exception. The specification sets no order."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "unit_interval",
+      "path": "gen.tag30.array[1]",
+      "obligation": {"tag": "AcceptBoundary", "contents": 0},
+      "samples": [
+        "unit_interval/manual-invalid/denominator-zero"
+      ],
+      "reason": "A zero denominator is valid CDDL, but it makes no ratio, so the decoder refuses it."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "anchor",
+      "path": ".",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "anchor/manual-invalid/indefinite-array"
+      ],
+      "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "constitution",
+      "path": ".",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "constitution/manual-invalid/indefinite-array"
+      ],
+      "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "ex_unit_prices",
+      "path": ".",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "ex_unit_prices/manual-invalid/indefinite-array"
+      ],
+      "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "ex_units",
+      "path": ".",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "ex_units/manual-invalid/indefinite-array"
+      ],
+      "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "gov_action_id",
+      "path": ".",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "gov_action_id/manual-invalid/indefinite-array"
+      ],
+      "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "header_body",
+      "path": "array[5].value",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "header_body/manual-invalid/vrf-result-indefinite"
+      ],
+      "reason": "The decoder reads this array with decodeListLen, which accepts a definite length only."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "proposal_procedure",
+      "path": ".",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "proposal_procedure/manual-invalid/indefinite-array"
+      ],
+      "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "redeemers",
+      "path": "choice[1:map].map[0].repeat1.value",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "redeemers/manual-invalid/indefinite-value-of-first-entry",
+        "redeemers/manual-invalid/indefinite-value-of-second-entry"
+      ],
+      "reason": "The decoder reads this array with decodeListLen, which accepts a definite length only."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "value",
+      "path": "choice[1:array]",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "value/manual-invalid/indefinite-array"
+      ],
+      "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "voting_procedure",
+      "path": ".",
+      "obligation": {"tag": "AcceptIndefinite"},
+      "samples": [
+        "voting_procedure/manual-invalid/indefinite-array"
+      ],
+      "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    }
+  ]
+}
