@@ -3,6 +3,7 @@ module Main where
 import Corpus
   ( VerificationMode (..),
     generateDataset,
+    readCorpusConfig,
     verifyDataset,
   )
 import Data.List (intercalate)
@@ -29,6 +30,9 @@ import Options.Applicative
     hsubparser,
     info,
     long,
+    value,
+    strOption,
+    showDefault,
     metavar,
     option,
     prefs,
@@ -40,7 +44,7 @@ import Options.Applicative
   )
 
 data Command
-  = Generate EraSpec FilePath Integer Int
+  = Generate EraSpec FilePath FilePath
   | Verify EraSpec VerificationMode FilePath
   | ListEras
   | ListRules EraSpec
@@ -102,8 +106,13 @@ commandParser =
           ( Generate
               <$> eraOption
               <*> strArgument (metavar "OUTPUT_DIR")
-              <*> argument seedReader (metavar "SEED")
-              <*> argument countReader (metavar "COUNT")
+              <*> strOption
+                ( long "config"
+                    <> metavar "FILE"
+                    <> value "dataset/corpus.json"
+                    <> showDefault
+                    <> help "Seed and per-rule sample counts"
+                )
           )
       )
       <> command
@@ -123,7 +132,9 @@ parserInfo =
     (fullDesc <> header "Cardano ledger CBOR corpus generator and verifier")
 
 runCommand :: Command -> IO ()
-runCommand (Generate era outputDir seed count) = generateDataset era outputDir seed count
+runCommand (Generate era outputDir configPath) = do
+  config <- readCorpusConfig configPath
+  generateDataset era outputDir config
 runCommand (Verify era mode datasetDir) = verifyDataset era mode datasetDir
 runCommand ListEras = mapM_ (putStrLn . eraSpecName) supportedEras
 runCommand (ListRules era) = mapM_ putStrLn $ ruleNames era

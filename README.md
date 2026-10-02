@@ -28,15 +28,15 @@ docker build --platform=linux/amd64 -t cbor .
 
 Generate one hundred Conway samples for every rule/category combination with seed `123`:
 ```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor generate --era conway /output 123 100
+docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor generate --era conway /output
 ```
-The output will be in the host's `$PWD/dataset/conway-123-100`.
+The output will be in the host's `$PWD/dataset/conway`.
 
 Generate one hundred Dijkstra samples for every rule/category combination with seed `123`:
 ```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor generate --era dijkstra /output 123 100
+docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor generate --era dijkstra /output
 ```
-The output will be in the host's `$PWD/dataset/dijkstra-123-100`:
+The output will be in the host's `$PWD/dataset/dijkstra`:
 
  - Every `*.input.cbor` file under `valid` must deserialize, and its normalized re-serialization must equal the
    `*.expected.cbor` file beside it. There is one such file for every `valid` sample.
@@ -44,11 +44,22 @@ The output will be in the host's `$PWD/dataset/dijkstra-123-100`:
 
 #### Generation parameters
 
-`generate --era ERA OUTPUT_DIR SEED COUNT` requires:
+`generate --era ERA OUTPUT_DIR` requires an existing writable output directory, and reads how much to generate from
+`--config FILE`, which defaults to `dataset/corpus.json`:
 
- - An existing writable output directory.
- - A non-negative decimal seed.
- - A count from 1 through 99999.
+```json
+{
+  "seed": 123,
+  "samples": 100,
+  "rules": {}
+}
+```
+
+ - `seed` is the non-negative decimal seed every rule's sample stream is derived from.
+ - `samples` is how many samples each rule gets in each category, from 1 through 99999.
+ - `rules` raises or lowers that for named rules. Rules do not all need the same number: a union of a hundred and
+   twenty nine alternatives needs far more samples than a pair of bytes before every branch has been seen, and one
+   count in a directory name cannot say so.
 
 For each rule the generator produces one batch of CDDL samples and one batch per mutation severity. Each batch receives
 an attempt budget of three times its requested count. If the budget cannot produce enough unique samples, the final
@@ -110,12 +121,12 @@ with no exceptions.
 
 `verify expected` checks that deserialized then reserialized data matches the data in the `*.expected.cbor` files.
 ```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify expected --era dijkstra /output/dijkstra-123-100
+docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify expected --era dijkstra /output/dijkstra
 ```
 
 If you just want to check the deserialization `verify deserialize` checks that decoders accept valid data and reject invalid data:
 ```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify deserialize --era conway /output/conway-123-100
+docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify deserialize --era conway /output/conway
 ```
 
 ### Normalization
@@ -264,7 +275,7 @@ The conformance report is expected to be a JSON file with the following top fiel
 
 | Field              | Type                | Meaning                                               |
 | ------------------ | ------------------- | ----------------------------------------------------- |
-| `corpus`           | string              | The dataset that was run, e.g. `conway-123-100`       |
+| `corpus`           | string              | The dataset that was run, e.g. `conway`       |
 | `protocol_version` | string              | The protocol version decoded against, e.g. `11.0`     |
 | `successful`       | bool                | `true` when the run had no failure at all             |
 | `totals`           | Outcome             | The per-rule outcomes summed                          |
@@ -318,8 +329,8 @@ automatically produces code-coverage reports for verification commands.
 
 Every `verify` invocation writes to
 `/output/coverage/<dataset-name>-<verification-mode>-<UTC-timestamp>`. For
-example, deserializing `dijkstra-123-100` can write to
-`/output/coverage/dijkstra-123-100-deserialize-20260901T113859Z`. The final
+example, deserializing `dijkstra` can write to
+`/output/coverage/dijkstra-deserialize-20260901T113859Z`. The final
 command output prints the exact directory.
 
 Each run contains:

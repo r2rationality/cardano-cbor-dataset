@@ -3,6 +3,8 @@
 module Corpus
   ( VerificationMode (..),
     generateDataset,
+    CorpusConfig (..),
+    readCorpusConfig,
     verifyDataset,
   )
 where
@@ -49,9 +51,13 @@ import Report
     failureKindLabel,
     writeReport,
   )
+import Data.Aeson (eitherDecodeFileStrict')
+import Data.Map.Strict (Map)
+import Data.Aeson.Types (parseEither, withObject, (.!=), (.:), (.:?))
 import System.Directory
   ( canonicalizePath,
     createDirectoryIfMissing,
+    doesFileExist,
     getPermissions,
     writable,
   )
@@ -673,28 +679,63 @@ addCases staging era topSeed rule category target = do
     createDirectoryIfMissing True $ ruleDir </> categoryName destination
   loop 0 0 0 0 0 0 Set.empty
 
-generateDataset :: EraSpec -> FilePath -> Integer -> Int -> IO ()
-generateDataset era requestedOutputRoot topSeed count = do
+-- | How a corpus is generated: one seed for the lot, and how many samples each
+-- rule gets.
+--
+-- Kept in a file beside the dataset rather than in its directory name. A name
+-- can carry one count, and rules do not all need the same one: a union of a
+-- hundred and twenty nine alternatives needs far more samples than a pair of
+-- bytes before every branch is seen.
+data CorpusConfig = CorpusConfig
+  { corpusSeed :: !Integer,
+    corpusSamples :: !Int,
+    -- | Rules that need more, or fewer, than the default.
+    corpusRuleSamples :: !(Map String Int)
+  }
+
+samplesFor :: CorpusConfig -> RuleCheck -> Int
+samplesFor config rule =
+  fromMaybe (corpusSamples config) (Map.lookup (ruleCheckName rule) (corpusRuleSamples config))
+
+readCorpusConfig :: FilePath -> IO CorpusConfig
+readCorpusConfig path = do
+  present <- doesFileExist path
+  unless present $ die $ "no corpus configuration at '" <> path <> "'"
+  decoded <- eitherDecodeFileStrict' path
+  case decoded >>= parseEither parse of
+    Left message -> die $ "cannot read '" <> path <> "': " <> message
+    Right config -> pure config
+  where
+    parse = withObject "corpus" $ \top ->
+      CorpusConfig
+        <$> top .: "seed"
+        <*> top .: "samples"
+        <*> (Map.mapKeys toString <$> (top .:? "rules" .!= (mempty :: Map Text Int)))
+
+generateDataset :: EraSpec -> FilePath -> CorpusConfig -> IO ()
+generateDataset era requestedOutputRoot config = do
   requireRealDirectory "output directory" requestedOutputRoot
   permissions <- getPermissions requestedOutputRoot
   unless (writable permissions) $ die $ "output directory is not writable: " <> requestedOutputRoot
   outputRoot <- canonicalizePath requestedOutputRoot
   when (outputRoot == "/") $ die "output directory must not be the filesystem root"
 
-  let corpusName = eraSpecName era <> "-" <> show topSeed <> "-" <> show count
-      destination = outputRoot </> corpusName
+  -- The era alone: what seed and how many samples produced it is in the
+  -- configuration, where it can say something different per rule.
+  let destination = outputRoot </> eraSpecName era
+      topSeed = corpusSeed config
       rules = eraSpecRules era
   (generated, referenced, unreferenced) <- publishDirectory destination $ \staging -> do
     counts <- forM rules $ \rule ->
       forM generatedCategories $ \category -> do
         putStrLn $ "Generating " <> ruleCheckName rule <> "/" <> categoryName category
-        addCases staging era topSeed rule category count
+        addCases staging era topSeed rule category (samplesFor config rule)
     references <- forM rules $ \rule -> do
       putStrLn $ "Emitting references for " <> ruleCheckName rule
       emitRuleReferences staging rule
     pure (sum $ concat counts, sum $ map fst references, sum $ map snd references)
 
-  let target = length rules * length generatedCategories * count
+  let target = length generatedCategories * sum (map (samplesFor config) rules)
   putStrLn $ "Generated " <> show generated <> "/" <> show target <> " samples in " <> destination
   putStrLn $ "  references emitted:      " <> show referenced
   putStrLn $ "  valid samples without one: " <> show unreferenced
