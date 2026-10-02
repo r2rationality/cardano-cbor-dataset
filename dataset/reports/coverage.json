@@ -1,0 +1,1453 @@
+{
+  "eras": {
+    "conway": {
+      "%constr<plutus_data>": {
+        "fulfilled": 447,
+        "outstanding": 308,
+        "untested": 30
+      },
+      "%multiasset<positive_coin>": {
+        "fulfilled": 21,
+        "outstanding": 8,
+        "untested": 0
+      },
+      "%nonempty_list<bootstrap_witness>": {
+        "fulfilled": 12,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "%nonempty_list<native_script>": {
+        "fulfilled": 14,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "%nonempty_list<plutus_data>": {
+        "fulfilled": 14,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "%nonempty_list<vkeywitness>": {
+        "fulfilled": 14,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "%nonempty_oset<certificate>": {
+        "fulfilled": 13,
+        "outstanding": 4,
+        "untested": 1
+      },
+      "%nonempty_oset<proposal_procedure>": {
+        "fulfilled": 13,
+        "outstanding": 4,
+        "untested": 1
+      },
+      "%nonempty_set<addr_keyhash>": {
+        "fulfilled": 12,
+        "outstanding": 5,
+        "untested": 1
+      },
+      "%nonempty_set<plutus_v1_script>": {
+        "fulfilled": 9,
+        "outstanding": 0,
+        "untested": 9
+      },
+      "%nonempty_set<plutus_v2_script>": {
+        "fulfilled": 9,
+        "outstanding": 0,
+        "untested": 9
+      },
+      "%nonempty_set<plutus_v3_script>": {
+        "fulfilled": 7,
+        "outstanding": 2,
+        "untested": 9
+      },
+      "%nonempty_set<transaction_input>": {
+        "fulfilled": 13,
+        "outstanding": 4,
+        "untested": 1
+      },
+      "%set<addr_keyhash>": {
+        "fulfilled": 11,
+        "outstanding": 4,
+        "untested": 1
+      },
+      "%set<committee_cold_credential>": {
+        "fulfilled": 13,
+        "outstanding": 2,
+        "untested": 1
+      },
+      "%set<transaction_input>": {
+        "fulfilled": 13,
+        "outstanding": 2,
+        "untested": 1
+      },
+      "addr_keyhash": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "address": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "alonzo_transaction_output": {
+        "fulfilled": 6,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "anchor": {
+        "fulfilled": 4,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "asset_name": {
+        "fulfilled": 3,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "auxiliary_data": {
+        "fulfilled": 8,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "auxiliary_data_array": {
+        "fulfilled": 4,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "auxiliary_data_hash": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "auxiliary_data_map": {
+        "fulfilled": 20,
+        "outstanding": 14,
+        "untested": 0
+      },
+      "auxiliary_scripts": {
+        "fulfilled": 5,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "babbage_transaction_output": {
+        "fulfilled": 15,
+        "outstanding": 11,
+        "untested": 0
+      },
+      "big_int": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 5
+      },
+      "big_nint": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 2
+      },
+      "big_uint": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 2
+      },
+      "block": {
+        "fulfilled": 26,
+        "outstanding": 11,
+        "untested": 0
+      },
+      "block_number": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "bootstrap_witness": {
+        "fulfilled": 8,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "bounded_bytes": {
+        "fulfilled": 3,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "certificate": {
+        "fulfilled": 30,
+        "outstanding": 57,
+        "untested": 0
+      },
+      "certificates": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "coin": {
+        "fulfilled": 4,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "committee_cold_credential": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "committee_hot_credential": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "constitution": {
+        "fulfilled": 7,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "cost_models": {
+        "fulfilled": 12,
+        "outstanding": 0,
+        "untested": 22
+      },
+      "credential": {
+        "fulfilled": 6,
+        "outstanding": 8,
+        "untested": 0
+      },
+      "data": {
+        "fulfilled": 4,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "datum_option": {
+        "fulfilled": 6,
+        "outstanding": 8,
+        "untested": 0
+      },
+      "dns_name": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "drep": {
+        "fulfilled": 10,
+        "outstanding": 8,
+        "untested": 6
+      },
+      "drep_credential": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "drep_voting_thresholds": {
+        "fulfilled": 2,
+        "outstanding": 0,
+        "untested": 13
+      },
+      "epoch": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "epoch_interval": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "ex_unit_prices": {
+        "fulfilled": 4,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "ex_units": {
+        "fulfilled": 4,
+        "outstanding": 4,
+        "untested": 7
+      },
+      "gov_action": {
+        "fulfilled": 14,
+        "outstanding": 20,
+        "untested": 4
+      },
+      "gov_action_id": {
+        "fulfilled": 5,
+        "outstanding": 5,
+        "untested": 0
+      },
+      "guardrails_script_hash": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "hash28": {
+        "fulfilled": 4,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "hash32": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "header": {
+        "fulfilled": 7,
+        "outstanding": 5,
+        "untested": 0
+      },
+      "header_body": {
+        "fulfilled": 22,
+        "outstanding": 12,
+        "untested": 0
+      },
+      "info_action": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "int64": {
+        "fulfilled": 1,
+        "outstanding": 2,
+        "untested": 2
+      },
+      "ipv4": {
+        "fulfilled": 4,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "ipv6": {
+        "fulfilled": 4,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "kes_period": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "kes_signature": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "kes_vkey": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "language": {
+        "fulfilled": 4,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "major_protocol_version": {
+        "fulfilled": 4,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "max_int64": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "max_word64": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "metadata": {
+        "fulfilled": 11,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "metadatum": {
+        "fulfilled": 23,
+        "outstanding": 8,
+        "untested": 1
+      },
+      "metadatum_label": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "min_int64": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "mint": {
+        "fulfilled": 15,
+        "outstanding": 9,
+        "untested": 0
+      },
+      "native_script": {
+        "fulfilled": 12,
+        "outstanding": 20,
+        "untested": 0
+      },
+      "negative_int64": {
+        "fulfilled": 1,
+        "outstanding": 2,
+        "untested": 2
+      },
+      "network_id": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 5
+      },
+      "nonnegative_interval": {
+        "fulfilled": 7,
+        "outstanding": 5,
+        "untested": 0
+      },
+      "nonzero_int64": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 3
+      },
+      "operational_cert": {
+        "fulfilled": 9,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "plutus_data": {
+        "fulfilled": 17,
+        "outstanding": 4,
+        "untested": 3
+      },
+      "plutus_v1_script": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "plutus_v2_script": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "plutus_v3_script": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "policy_id": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "pool_keyhash": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "pool_metadata": {
+        "fulfilled": 5,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "pool_voting_thresholds": {
+        "fulfilled": 2,
+        "outstanding": 0,
+        "untested": 8
+      },
+      "port": {
+        "fulfilled": 1,
+        "outstanding": 1,
+        "untested": 2
+      },
+      "positive_coin": {
+        "fulfilled": 1,
+        "outstanding": 2,
+        "untested": 2
+      },
+      "positive_int": {
+        "fulfilled": 1,
+        "outstanding": 2,
+        "untested": 2
+      },
+      "positive_int64": {
+        "fulfilled": 1,
+        "outstanding": 2,
+        "untested": 2
+      },
+      "potential_languages": {
+        "fulfilled": 1,
+        "outstanding": 2,
+        "untested": 2
+      },
+      "proposal_procedure": {
+        "fulfilled": 5,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "proposal_procedures": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "protocol_param_update": {
+        "fulfilled": 52,
+        "outstanding": 30,
+        "untested": 0
+      },
+      "protocol_version": {
+        "fulfilled": 5,
+        "outstanding": 5,
+        "untested": 0
+      },
+      "redeemer": {
+        "fulfilled": 6,
+        "outstanding": 6,
+        "untested": 0
+      },
+      "redeemer_tag": {
+        "fulfilled": 3,
+        "outstanding": 0,
+        "untested": 2
+      },
+      "redeemers": {
+        "fulfilled": 20,
+        "outstanding": 21,
+        "untested": 0
+      },
+      "relay": {
+        "fulfilled": 6,
+        "outstanding": 11,
+        "untested": 0
+      },
+      "required_signers": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "reward_account": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 1
+      },
+      "script": {
+        "fulfilled": 14,
+        "outstanding": 12,
+        "untested": 0
+      },
+      "script_data_hash": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "script_hash": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "script_ref": {
+        "fulfilled": 4,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "sequence_number": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "signature": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "signkey_kes": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "slot": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "stake_credential": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "transaction": {
+        "fulfilled": 8,
+        "outstanding": 4,
+        "untested": 1
+      },
+      "transaction_body": {
+        "fulfilled": 42,
+        "outstanding": 13,
+        "untested": 0
+      },
+      "transaction_id": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "transaction_index": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "transaction_input": {
+        "fulfilled": 5,
+        "outstanding": 5,
+        "untested": 0
+      },
+      "transaction_output": {
+        "fulfilled": 4,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "transaction_witness_set": {
+        "fulfilled": 18,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "unit_interval": {
+        "fulfilled": 5,
+        "outstanding": 4,
+        "untested": 6
+      },
+      "url": {
+        "fulfilled": 2,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "value": {
+        "fulfilled": 7,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "vkey": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "vkeywitness": {
+        "fulfilled": 7,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "vote": {
+        "fulfilled": 4,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "voter": {
+        "fulfilled": 15,
+        "outstanding": 17,
+        "untested": 0
+      },
+      "voting_procedure": {
+        "fulfilled": 7,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "voting_procedures": {
+        "fulfilled": 15,
+        "outstanding": 9,
+        "untested": 0
+      },
+      "vrf_cert": {
+        "fulfilled": 7,
+        "outstanding": 5,
+        "untested": 0
+      },
+      "vrf_keyhash": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "vrf_vkey": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "withdrawals": {
+        "fulfilled": 5,
+        "outstanding": 5,
+        "untested": 0
+      }
+    },
+    "dijkstra": {
+      "%constr<plutus_data>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%multiasset<positive_coin>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_oset<certificate>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_oset<credential>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_oset<proposal_procedure>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_oset<sub_transaction>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<addr_keyhash>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<bootstrap_witness>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<native_script>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<plutus_data>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<plutus_v1_script>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<plutus_v2_script>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<plutus_v3_script>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<transaction_index>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<transaction_input>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%nonempty_set<vkeywitness>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%set<addr_keyhash>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%set<committee_cold_credential>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "%set<transaction_input>": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "account_balance_interval": {
+        "fulfilled": 8,
+        "outstanding": 0,
+        "untested": 18
+      },
+      "account_balance_intervals": {
+        "fulfilled": 7,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "addr_keyhash": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "address": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 2
+      },
+      "alonzo_transaction_output": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "anchor": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 7
+      },
+      "asset_name": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "auxiliary_data": {
+        "fulfilled": 8,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "auxiliary_data_array": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "auxiliary_data_hash": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "auxiliary_data_map": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "auxiliary_scripts": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "babbage_transaction_output": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "big_int": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "big_nint": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "big_uint": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "block": {
+        "fulfilled": 4,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "block_body": {
+        "fulfilled": 13,
+        "outstanding": 8,
+        "untested": 4
+      },
+      "block_number": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "bls_key": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "bootstrap_witness": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 14
+      },
+      "bounded_bytes": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "certificate": {
+        "fulfilled": 29,
+        "outstanding": 50,
+        "untested": 0
+      },
+      "certificates": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "coin": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 4
+      },
+      "committee_cold_credential": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "committee_hot_credential": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "constitution": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 11
+      },
+      "cost_models": {
+        "fulfilled": 11,
+        "outstanding": 18,
+        "untested": 11
+      },
+      "credential": {
+        "fulfilled": 6,
+        "outstanding": 8,
+        "untested": 0
+      },
+      "data": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "datum_option": {
+        "fulfilled": 6,
+        "outstanding": 8,
+        "untested": 0
+      },
+      "direct_deposits": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "dns_name": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "drep": {
+        "fulfilled": 10,
+        "outstanding": 8,
+        "untested": 6
+      },
+      "drep_credential": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "drep_voting_thresholds": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 15
+      },
+      "eb_announcement": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "epoch": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "epoch_interval": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "ex_unit_prices": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "ex_units": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 15
+      },
+      "gov_action": {
+        "fulfilled": 14,
+        "outstanding": 20,
+        "untested": 4
+      },
+      "gov_action_id": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 10
+      },
+      "guardrails_script_hash": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "guards": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "hash28": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "hash32": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "header": {
+        "fulfilled": 7,
+        "outstanding": 5,
+        "untested": 0
+      },
+      "header_body": {
+        "fulfilled": 30,
+        "outstanding": 14,
+        "untested": 0
+      },
+      "info_action": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "int64": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "invalid_transactions": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "ipv4": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "ipv6": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "kes_period": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "kes_signature": {
+        "fulfilled": 3,
+        "outstanding": 2,
+        "untested": 0
+      },
+      "kes_vkey": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "language": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "leios_certificate": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "leios_signature": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "major_protocol_version": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "max_int64": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "max_pledge_leverage": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "max_word32": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "max_word64": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "metadata": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "metadatum": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 32
+      },
+      "metadatum_label": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "min_int64": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "mint": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 24
+      },
+      "native_script": {
+        "fulfilled": 14,
+        "outstanding": 23,
+        "untested": 0
+      },
+      "negative_int64": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "network_id": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "nonnegative_interval": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "nonzero_int64": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "operational_cert": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 9
+      },
+      "peras_certificate": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "plutus_data": {
+        "fulfilled": 17,
+        "outstanding": 4,
+        "untested": 3
+      },
+      "plutus_v1_script": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "plutus_v2_script": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "plutus_v3_script": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "plutus_v4_script": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "policy_id": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "pool_keyhash": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "pool_metadata": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "pool_voting_thresholds": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 10
+      },
+      "port": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "positive_coin": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "positive_int": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "positive_int64": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "positive_interval": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "positive_word32": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "potential_languages": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "proposal_procedure": {
+        "fulfilled": 5,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "proposal_procedures": {
+        "fulfilled": 1,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "protocol_param_update": {
+        "fulfilled": 53,
+        "outstanding": 29,
+        "untested": 16
+      },
+      "protocol_version": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 10
+      },
+      "redeemer_tag": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "redeemers": {
+        "fulfilled": 14,
+        "outstanding": 19,
+        "untested": 0
+      },
+      "relay": {
+        "fulfilled": 6,
+        "outstanding": 11,
+        "untested": 0
+      },
+      "required_top_level_guards": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "reward_account": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 2
+      },
+      "script": {
+        "fulfilled": 11,
+        "outstanding": 5,
+        "untested": 16
+      },
+      "script_data_hash": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "script_hash": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "script_ref": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "sequence_number": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "signature": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "signkey_kes": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "slot": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "stake_credential": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "starting_account_balance_intervals": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "sub_transaction": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "sub_transaction_body": {
+        "fulfilled": 42,
+        "outstanding": 10,
+        "untested": 0
+      },
+      "sub_transactions": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "transaction": {
+        "fulfilled": 6,
+        "outstanding": 4,
+        "untested": 1
+      },
+      "transaction_body": {
+        "fulfilled": 55,
+        "outstanding": 10,
+        "untested": 0
+      },
+      "transaction_id": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "transaction_index": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "transaction_input": {
+        "fulfilled": 5,
+        "outstanding": 5,
+        "untested": 0
+      },
+      "transaction_mempool": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "transaction_output": {
+        "fulfilled": 4,
+        "outstanding": 1,
+        "untested": 0
+      },
+      "transaction_witness_set": {
+        "fulfilled": 18,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "unit_interval": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "url": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "value": {
+        "fulfilled": 7,
+        "outstanding": 3,
+        "untested": 0
+      },
+      "vkey": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "vkeywitness": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 7
+      },
+      "vote": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "voter": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 32
+      },
+      "voting_procedure": {
+        "fulfilled": 7,
+        "outstanding": 4,
+        "untested": 0
+      },
+      "voting_procedures": {
+        "fulfilled": 15,
+        "outstanding": 9,
+        "untested": 0
+      },
+      "vrf_cert": {
+        "fulfilled": 8,
+        "outstanding": 7,
+        "untested": 0
+      },
+      "vrf_keyhash": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "vrf_vkey": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 0
+      },
+      "withdrawals": {
+        "fulfilled": 0,
+        "outstanding": 0,
+        "untested": 10
+      }
+    }
+  }
+}

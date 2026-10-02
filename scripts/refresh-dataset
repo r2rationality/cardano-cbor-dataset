@@ -1,0 +1,42 @@
+#!/bin/sh
+# Generate both corpora, install any rule directory the dataset is missing, and
+# rewrite the coverage page.
+#
+# Only missing directories are installed: a rule already in the dataset keeps
+# the samples it has, so hand written cases under `manual/` survive and the diff
+# stays to what actually changed. Generation runs the built binary rather than
+# `cabal run`, which would contend with a running tricorder for the build lock.
+# Eras to refresh, defaulting to every one the dataset carries. Naming one keeps
+# a working session to the era being changed: generation is the slow half, and
+# the other era's corpus is not affected by it.
+set -eu
+
+project=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$project"
+
+# Newest first: several builds leave a `cbor` behind, and an older one will not
+# know the options this script passes.
+binary=$(find dist-newstyle -name cbor -type f -perm -111 -exec ls -t {} + | head -1)
+[ -n "$binary" ] || { echo "build the cbor binary first" >&2; exit 1; }
+
+generator=$project/.cache/cardano-ledger/dist-newstyle/build/aarch64-osx/ghc-9.6.7/cardano-ledger-api-1.15.0.0/x/generate-cbor/noopt/build/generate-cbor
+PATH="$generator:$PATH"
+export PATH
+
+staging=$(mktemp -d "${TMPDIR:-/tmp}/refresh-dataset.XXXXXX")
+trap 'rm -rf "$staging"' EXIT
+
+for era in ${ERAS:-conway dijkstra}; do
+  mkdir -p "$staging/$era"
+  echo "generating $era"
+  "$binary" generate --era "$era" --no-coverage-check "$staging/$era" >/dev/null
+  corpus=$(command ls "$staging/$era")
+  for rule in $(command ls "$staging/$era/$corpus"); do
+    if [ ! -d "dataset/$corpus/$rule" ]; then
+      cp -R "$staging/$era/$corpus/$rule" "dataset/$corpus/$rule"
+      echo "  added $corpus/$rule"
+    fi
+  done
+done
+
+"$binary" report dataset

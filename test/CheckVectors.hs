@@ -8,13 +8,10 @@
 -- not, and the table in the vector directory's README is the authority.
 module Main (main) where
 
-import Control.Monad (forM, unless)
-import qualified Data.ByteString as BS
-import Data.List (isSuffixOf, sort)
+import Data.ByteString qualified as BS
+import Data.List (isSuffixOf)
 import Normalize (normalizeBytes)
 import System.Directory (doesFileExist, listDirectory)
-import System.Environment (getArgs)
-import System.Exit (die, exitFailure)
 import System.FilePath ((</>))
 import Text.Printf (printf)
 
@@ -70,7 +67,8 @@ main = do
   let names = sort [name | entry <- entries, Just name <- [stripSuffix inputSuffix entry]]
       orphans = orphanedOutputs entries
   unless (null orphans) $
-    die $ "outputs with no input in '" <> directory <> "': " <> show orphans
+    die $
+      "outputs with no input in '" <> directory <> "': " <> show orphans
   if null names
     then die $ "no vectors in '" <> directory <> "'"
     else do

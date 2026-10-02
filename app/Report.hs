@@ -12,31 +12,31 @@
 --
 -- Fields are written in the order the specification lists them, and rules are
 -- written in name order, so two reports for the same corpus diff cleanly.
-module Report (
-  ConformanceReport (..),
-  Failure (..),
-  Outcome (..),
-  Reason,
-  FailureKind (..),
-  failureKindLabel,
-  writeReport,
-) where
+module Report
+  ( ConformanceReport (..),
+    Failure (..),
+    Outcome (..),
+    Reason,
+    FailureKind (..),
+    failureKindLabel,
+    writeReport,
+  )
+where
 
 import Data.Aeson (Value, object, (.=))
-import Data.Aeson.Encode.Pretty (
-  Config (confCompare, confIndent, confTrailingNewline),
-  Indent (Spaces),
-  defConfig,
-  encodePretty',
- )
-import qualified Data.Aeson.Key as Key
-import qualified Data.ByteString.Builder as Builder
-import Data.Monoid (Sum (..))
-import Data.Text (Text)
-import GHC.Generics (Generic, Generically (..))
+import Data.Aeson.Encode.Pretty
+  ( Config (confCompare, confIndent, confTrailingNewline),
+    Indent (Spaces),
+    defConfig,
+    encodePretty',
+  )
+import Data.Aeson.Key qualified as Key
+import Data.ByteString.Builder qualified as Builder
+import Data.List (lookup)
+import GHC.Generics (Generically (..))
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (takeDirectory)
-import System.IO (IOMode (WriteMode), hSetBinaryMode, withFile)
+import System.IO (hSetBinaryMode)
 
 -- | What one rule, or a whole corpus, was asked to do and what it did.
 --
@@ -45,22 +45,22 @@ import System.IO (IOMode (WriteMode), hSetBinaryMode, withFile)
 -- cannot be left out of the roll-up, which would show as totals quietly
 -- disagreeing with the rules they are the sum of.
 data Outcome = Outcome
-  { generatedTotal :: !(Sum Int)
-  , generatedDecodedReencodedExpected :: !(Sum Int)
-  , generatedDecodedReencodedActual :: !(Sum Int)
-  , generatedMustBeRejectedExpected :: !(Sum Int)
-  , generatedMustBeRejectedActual :: !(Sum Int)
-  , zapMustBeRejectedExpected :: !(Sum Int)
-  , zapMustBeRejectedActual :: !(Sum Int)
+  { generatedTotal :: !(Sum Int),
+    generatedDecodedReencodedExpected :: !(Sum Int),
+    generatedDecodedReencodedActual :: !(Sum Int),
+    generatedMustBeRejectedExpected :: !(Sum Int),
+    generatedMustBeRejectedActual :: !(Sum Int),
+    zapMustBeRejectedExpected :: !(Sum Int),
+    zapMustBeRejectedActual :: !(Sum Int)
   }
   deriving stock (Generic)
   deriving (Semigroup, Monoid) via Generically Outcome
 
 data Failure = Failure
-  { failureSample :: !String
-  , failureRule :: !String
-  , failureClass :: !String
-  , failureReason :: !String
+  { failureSample :: !String,
+    failureRule :: !String,
+    failureClass :: !String,
+    failureReason :: !String
   }
 
 -- | Why one sample failed. The report collapses a reason to a stable label, so
@@ -86,23 +86,23 @@ failureKindLabel SampleUnreadable = "the sample is unreadable"
 type Reason = (FailureKind, String)
 
 data ConformanceReport = ConformanceReport
-  { reportCorpus :: !String
-  , reportProtocolVersion :: !String
-  , reportTotals :: !Outcome
-  , reportRules :: ![(String, Outcome)]
-  , reportFailures :: ![Failure]
+  { reportCorpus :: !String,
+    reportProtocolVersion :: !String,
+    reportTotals :: !Outcome,
+    reportRules :: ![(String, Outcome)],
+    reportFailures :: ![Failure]
   }
 
 outcomeValue :: Outcome -> Value
 outcomeValue outcome =
   object
-    [ count "generated_total" generatedTotal
-    , count "generated_decoded_reencoded_expected" generatedDecodedReencodedExpected
-    , count "generated_decoded_reencoded_actual" generatedDecodedReencodedActual
-    , count "generated_must_be_rejected_expected" generatedMustBeRejectedExpected
-    , count "generated_must_be_rejected_actual" generatedMustBeRejectedActual
-    , count "zap_must_be_rejected_expected" zapMustBeRejectedExpected
-    , count "zap_must_be_rejected_actual" zapMustBeRejectedActual
+    [ count "generated_total" generatedTotal,
+      count "generated_decoded_reencoded_expected" generatedDecodedReencodedExpected,
+      count "generated_decoded_reencoded_actual" generatedDecodedReencodedActual,
+      count "generated_must_be_rejected_expected" generatedMustBeRejectedExpected,
+      count "generated_must_be_rejected_actual" generatedMustBeRejectedActual,
+      count "zap_must_be_rejected_expected" zapMustBeRejectedExpected,
+      count "zap_must_be_rejected_actual" zapMustBeRejectedActual
     ]
   where
     count name field = name .= (getSum (field outcome) :: Int)
@@ -110,10 +110,10 @@ outcomeValue outcome =
 failureValue :: Failure -> Value
 failureValue failure =
   object
-    [ "sample" .= failureSample failure
-    , "rule" .= failureRule failure
-    , "class" .= failureClass failure
-    , "reason" .= failureReason failure
+    [ "sample" .= failureSample failure,
+      "rule" .= failureRule failure,
+      "class" .= failureClass failure,
+      "reason" .= failureReason failure
     ]
 
 -- | A run is successful only when nothing failed, so the flag is derived from
@@ -121,12 +121,12 @@ failureValue failure =
 reportValue :: ConformanceReport -> Value
 reportValue report =
   object
-    [ "corpus" .= reportCorpus report
-    , "protocol_version" .= reportProtocolVersion report
-    , "successful" .= null (reportFailures report)
-    , "totals" .= outcomeValue (reportTotals report)
-    , "rules" .= object [Key.fromString name .= outcomeValue outcome | (name, outcome) <- reportRules report]
-    , "failures" .= map failureValue (reportFailures report)
+    [ "corpus" .= reportCorpus report,
+      "protocol_version" .= reportProtocolVersion report,
+      "successful" .= null (reportFailures report),
+      "totals" .= outcomeValue (reportTotals report),
+      "rules" .= object [Key.fromString name .= outcomeValue outcome | (name, outcome) <- reportRules report],
+      "failures" .= map failureValue (reportFailures report)
     ]
 
 -- | The order a key is written in. A JSON object has no inherent order, so the
@@ -138,23 +138,23 @@ reportValue report =
 -- collide, since no rule is called @corpus@ or @totals@.
 keyOrder :: [Text]
 keyOrder =
-  [ "corpus"
-  , "protocol_version"
-  , "successful"
-  , "totals"
-  , "rules"
-  , "failures"
-  , "generated_total"
-  , "generated_decoded_reencoded_expected"
-  , "generated_decoded_reencoded_actual"
-  , "generated_must_be_rejected_expected"
-  , "generated_must_be_rejected_actual"
-  , "zap_must_be_rejected_expected"
-  , "zap_must_be_rejected_actual"
-  , "sample"
-  , "rule"
-  , "class"
-  , "reason"
+  [ "corpus",
+    "protocol_version",
+    "successful",
+    "totals",
+    "rules",
+    "failures",
+    "generated_total",
+    "generated_decoded_reencoded_expected",
+    "generated_decoded_reencoded_actual",
+    "generated_must_be_rejected_expected",
+    "generated_must_be_rejected_actual",
+    "zap_must_be_rejected_expected",
+    "zap_must_be_rejected_actual",
+    "sample",
+    "rule",
+    "class",
+    "reason"
   ]
 
 compareKeys :: Text -> Text -> Ordering
@@ -178,7 +178,7 @@ writeReport path report = do
   where
     configuration =
       defConfig
-        { confIndent = Spaces 2
-        , confCompare = compareKeys
-        , confTrailingNewline = True
+        { confIndent = Spaces 2,
+          confCompare = compareKeys,
+          confTrailingNewline = True
         }
