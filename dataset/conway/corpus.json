@@ -1,0 +1,90 @@
+{
+  "seed": 123,
+  "samples": 100,
+  "rules": {
+    "%constr<plutus_data>": 800,
+    "block": 600,
+    "certificate": 600,
+    "gov_action": 600,
+    "native_script": 600
+  },
+  "waivers": [
+    {
+      "rule": "metadatum",
+      "path": "choice[0]",
+      "demand": "a map carrying the same key twice",
+      "kind": "incorrect-specification",
+      "reason": "The specification writes metadatum's map branch in CDDL map notation, which admits each key once. The ledger does not represent it as a map: data Metadatum = Map ![(Metadatum, Metadatum)] | ... is an association list, so a repeated key is kept and round-trips unchanged, and nothing downstream refuses it. The constraint is not enforced anywhere, and the ledger is deliberate in carrying metadata as written, so the specification is the side that is wrong."
+    },
+    {
+      "rule": "plutus_data",
+      "path": "choice[1]",
+      "demand": "a map carrying the same key twice",
+      "kind": "incorrect-specification",
+      "reason": "The specification writes plutus_data's map branch in CDDL map notation, which admits each key once. Plutus data is an ordered association list, not a map: the ledger wraps PV1.Data, whose own map constructor carries [(Data, Data)]. Scripts on chain observe the entries in order, so refusing a repeat would reject data the ledger must be able to carry, and the specification is the side that is wrong."
+    },
+    {
+      "rule": "redeemers",
+      "path": "choice[1]",
+      "demand": "a map carrying the same key twice",
+      "kind": "incorrect-specification",
+      "reason": "The specification writes redeemers' map branch in CDDL map notation, which admits each key once. No decoder refuses a repeat, at any level: the redeemers decoder reads the entries with decodeListLikeWithCount and discards the count, then builds the map with RedeemersRaw . Map.fromList . NE.toList, and transaction_witness_set, transaction and block all accept the result unchanged. The second entry is dropped from the decoded value, and the bytes still round-trip because Redeemers is a MemoBytes that re-encodes what it was handed. The node is what has been running, so the specification is the side that does not match it."
+    },
+    {
+      "rule": "transaction_body",
+      "path": "map{14}.occur.value.validator.gen.choice[0].tag258",
+      "demand": "too few: 0 entries where 1 is the minimum",
+      "kind": "verified-by-ledger",
+      "reason": "required_signers is nonempty_set<addr_keyhash>, and the ledger refuses an empty one at this field: a transaction body whose key 14 is d9010280 fails to decode with \"TxBody: 'Required Signer Hashes' must be non-empty when supplied\". The specification validator accepts the same bytes, so the matcher has no rejected sample to offer this obligation and it can never be witnessed. The sample is kept under manual-invalid, where it tests the ledger, and the obligation is settled here."
+    },
+    {
+      "rule": "certificates",
+      "path": "validator.gen.choice[0].tag258",
+      "demand": "too few: 0 entries where 1 is the minimum",
+      "kind": "verified-by-parent",
+      "reason": "certificates is nonempty_oset<certificate>, and OSet decodes an empty one without complaint. The ledger checks emptiness at the one transaction body field that carries it, key 4, with bodyFields 4 = fieldGuarded (emptyFailure \"Certificates\" \"non-empty\") ..., so a transaction body carrying an empty one is refused. The specification validator reads the empty bytes as valid, so no sample can witness this obligation and the sample under verification-by-parent records what the standalone type lets through instead."
+    },
+    {
+      "rule": "certificates",
+      "path": "validator.gen.choice[1]",
+      "demand": "too few: 0 entries where 1 is the minimum",
+      "kind": "verified-by-parent",
+      "reason": "certificates is nonempty_oset<certificate>, and OSet decodes an empty one without complaint. The ledger checks emptiness at the one transaction body field that carries it, key 4, with bodyFields 4 = fieldGuarded (emptyFailure \"Certificates\" \"non-empty\") ..., so a transaction body carrying an empty one is refused. The specification validator reads the empty bytes as valid, so no sample can witness this obligation and the sample under verification-by-parent records what the standalone type lets through instead."
+    },
+    {
+      "rule": "proposal_procedures",
+      "path": "validator.gen.choice[0].tag258",
+      "demand": "too few: 0 entries where 1 is the minimum",
+      "kind": "verified-by-parent",
+      "reason": "proposal_procedures is nonempty_oset<proposal_procedure>, and OSet decodes an empty one without complaint. The ledger checks emptiness at the one transaction body field that carries it, key 20, with bodyFields 20 = fieldGuarded (emptyFailure \"ProposalProcedures\" \"non-empty\") ..., so a transaction body carrying an empty one is refused. The specification validator reads the empty bytes as valid, so no sample can witness this obligation and the sample under verification-by-parent records what the standalone type lets through instead."
+    },
+    {
+      "rule": "proposal_procedures",
+      "path": "validator.gen.choice[1]",
+      "demand": "too few: 0 entries where 1 is the minimum",
+      "kind": "verified-by-parent",
+      "reason": "proposal_procedures is nonempty_oset<proposal_procedure>, and OSet decodes an empty one without complaint. The ledger checks emptiness at the one transaction body field that carries it, key 20, with bodyFields 20 = fieldGuarded (emptyFailure \"ProposalProcedures\" \"non-empty\") ..., so a transaction body carrying an empty one is refused. The specification validator reads the empty bytes as valid, so no sample can witness this obligation and the sample under verification-by-parent records what the standalone type lets through instead."
+    },
+    {
+      "rule": "mint",
+      "path": ".",
+      "demand": "too few: 0 entries where 1 is the minimum",
+      "kind": "verified-by-parent",
+      "reason": "The specification writes mint as a non-empty map, and the MultiAsset type decodes an empty one without complaint. The ledger does not check emptiness in the type: it checks it at the one transaction body field that carries a mint, key 9, with bodyFields 9 = fieldGuarded (emptyFailure \"Mint\" \"non-empty\") (== mempty) ... so a transaction body carrying an empty mint is refused and the standalone bytes are not. mint is referenced nowhere else in the Conway specification, so the constraint is enforced everywhere it can be reached. The bytes themselves are not kept: a conforming implementation may refuse them at its own type, and a corpus sample would demand that it accept them."
+    },
+    {
+      "rule": "voting_procedures",
+      "path": ".",
+      "demand": "too few: 0 entries where 1 is the minimum",
+      "kind": "verified-by-parent",
+      "reason": "The specification writes voting_procedures as a non-empty map, and the VotingProcedures type decodes an empty one without complaint. The ledger does not check emptiness in the type: it checks it at the one transaction body field that carries voting procedures, key 19, with bodyFields 19 = fieldGuarded (emptyFailure \"VotingProcedures\" \"non-empty\") (null . unVotingProcedures) ... so a transaction body carrying an empty set of voting procedures is refused and the standalone bytes are not. voting_procedures is referenced nowhere else in the Conway specification, so the constraint is enforced everywhere it can be reached. The bytes themselves are not kept: a conforming implementation may refuse them at its own type, and a corpus sample would demand that it accept them."
+    },
+    {
+      "rule": "withdrawals",
+      "path": ".",
+      "demand": "too few: 0 entries where 1 is the minimum",
+      "kind": "verified-by-parent",
+      "reason": "The specification writes withdrawals as a non-empty map, and the Withdrawals type decodes an empty one without complaint. The ledger does not check emptiness in the type: it checks it at the one transaction body field that carries withdrawals, key 5, with bodyFields 5 = fieldGuarded (emptyFailure \"Withdrawals\" \"non-empty\") (null . unWithdrawals) ... so a transaction body carrying an empty withdrawals map is refused and the standalone bytes are not. withdrawals is referenced nowhere else in the Conway specification, so the constraint is enforced everywhere it can be reached. The bytes themselves are not kept: a conforming implementation may refuse them at its own type, and a corpus sample would demand that it accept them."
+    }
+  ]
+}
