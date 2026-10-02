@@ -1,0 +1,20 @@
+[
+  {
+    "rule": "metadatum",
+    "path": "choice[0]",
+    "demand": "a map carrying the same key twice",
+    "reason": "The specification writes metadatum's map branch in CDDL map notation, which admits each key once. The ledger does not represent it as a map: data Metadatum = Map ![(Metadatum, Metadatum)] | ... is an association list, so a repeated key is kept and round-trips unchanged, and nothing downstream refuses it. The constraint is not enforced anywhere, and the ledger is deliberate in carrying metadata as written, so the specification is the side that is wrong."
+  },
+  {
+    "rule": "plutus_data",
+    "path": "choice[1]",
+    "demand": "a map carrying the same key twice",
+    "reason": "The specification writes plutus_data's map branch in CDDL map notation, which admits each key once. Plutus data is an ordered association list, not a map: the ledger wraps PV1.Data, whose own map constructor carries [(Data, Data)]. Scripts on chain observe the entries in order, so refusing a repeat would reject data the ledger must be able to carry, and the specification is the side that is wrong."
+  },
+  {
+    "rule": "redeemers",
+    "path": "choice[1]",
+    "demand": "a map carrying the same key twice",
+    "reason": "The specification writes redeemers' map branch in CDDL map notation, which admits each key once. No decoder refuses a repeat, at any level: the redeemers decoder reads the entries with decodeListLikeWithCount and discards the count, then builds the map with RedeemersRaw . Map.fromList . NE.toList, and transaction_witness_set, transaction and block all accept the result unchanged. The second entry is dropped from the decoded value, and the bytes still round-trip because Redeemers is a MemoBytes that re-encodes what it was handed. The node is what has been running, so the specification is the side that does not match it."
+  }
+]

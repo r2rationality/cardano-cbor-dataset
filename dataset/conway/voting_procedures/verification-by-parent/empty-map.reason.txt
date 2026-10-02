@@ -1,0 +1,9 @@
+The specification writes voting_procedures as a non-empty map, and the VotingProcedures type decodes an empty one
+without complaint. The ledger does not check emptiness in the type: it checks it at the one transaction body field
+that carries voting procedures, key 19, with
+
+    bodyFields 19 = fieldGuarded (emptyFailure "VotingProcedures" "non-empty") (null . unVotingProcedures) ...
+
+so a transaction body carrying an empty set of voting procedures is refused and the standalone bytes are not.
+voting_procedures is referenced nowhere else in the Conway specification, so the constraint is enforced everywhere it
+can be reached.
