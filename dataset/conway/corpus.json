@@ -1,0 +1,7 @@
+{
+  "seed": 123,
+  "samples": 100,
+  "rules": {
+    "%constr<plutus_data>": 800
+  }
+}
