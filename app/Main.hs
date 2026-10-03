@@ -55,6 +55,12 @@ eraOption =
     (eitherReader lookupEra)
     (long "era" <> metavar "ERA" <> help ("Ledger era: " <> intercalate ", " supportedEraNames))
 
+eraArgument :: Parser EraSpec
+eraArgument =
+  argument
+    (eitherReader lookupEra)
+    (metavar "ERA" <> help ("Ledger era: " <> intercalate ", " supportedEraNames))
+
 isAsciiDigit :: Char -> Bool
 isAsciiDigit character = character >= '0' && character <= '9'
 
@@ -80,21 +86,29 @@ datasetArgument = strArgument $ metavar "DATASET_DIR"
 commandInfo :: String -> Parser a -> ParserInfo a
 commandInfo description parser = info parser $ progDesc description
 
--- | The era belongs to each mode rather than to @verify@ itself, so that
--- @verify MODE --era ERA DATASET_DIR@ reads in the order it is documented.
-verifyModeParser :: VerificationMode -> Parser Command
-verifyModeParser mode = (\era dataset -> Verify era mode dataset) <$> eraOption <*> datasetArgument
+-- | Parse @ERA DATASET_DIR@ before any mode-specific positional arguments.
+verifyModeParser :: Parser VerificationMode -> Parser Command
+verifyModeParser mode =
+  (\era dataset verificationMode -> Verify era verificationMode dataset)
+    <$> eraArgument
+    <*> datasetArgument
+    <*> mode
 
 verifyParser :: Parser Command
 verifyParser =
   hsubparser $
     command
       "deserialize"
-      (commandInfo "Check decoder acceptance only" $ verifyModeParser DeserializeOnly)
+      (commandInfo "Check decoder acceptance only" $ verifyModeParser $ pure DeserializeOnly)
       <> command
         "expected"
         ( commandInfo "Require normalized reserialization to equal each expected file" $
-            verifyModeParser CheckExpectedOutput
+            verifyModeParser $
+              CheckExpectedOutput
+                <$> strArgument
+                  ( metavar "RESULTS_JSON"
+                      <> help "Write raw per-sample JSON results to this path"
+                  )
         )
 
 commandParser :: Parser Command
