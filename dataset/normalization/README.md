@@ -1,7 +1,7 @@
 # Shape normalization vectors
 
-One `.in.cbor` / `.out.cbor` pair per case. An independent normalizer is correct on this set when `normalize(<n>.in.cbor)`
-is byte-identical to `<n>.out.cbor` for every pair. The specification these pin down is in the repository README.
+One `.input.cbor` / `.expected.cbor` pair per case. An independent normalizer is correct on this set when `normalize(<n>.input.cbor)`
+is byte-identical to `<n>.expected.cbor` for every pair. The specification these pin down is in the repository README.
 
 The hex below is the reviewable form of the same bytes, and it is the authority: the committed files were checked
 against this table by hand rather than taken on trust from the reference implementation.
