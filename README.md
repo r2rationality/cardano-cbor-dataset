@@ -120,13 +120,16 @@ decode would trigger a fork in the network. This is why we need to verify that t
 with no exceptions.
 
 `verify expected` checks that deserialized then reserialized data matches the data in the `*.expected.cbor` files.
+
+Container verification commands require the exact argument order `verify MODE ERA DATASET`
+The entrypoint constructs the underlying Haskell command and supplies its output path.
 ```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify expected --era dijkstra /output/dijkstra
+docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify expected dijkstra /output/dijkstra
 ```
 
 If you just want to check the deserialization `verify deserialize` checks that decoders accept valid data and reject invalid data:
 ```
-docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify deserialize --era conway /output/conway
+docker run --rm --platform=linux/amd64 -v "$PWD/dataset:/output" cbor verify deserialize conway /output/conway
 ```
 
 ### Normalization
@@ -269,18 +272,10 @@ plan is cached.
 
 ### Report output format
 
-A completed `verify expected` run writes two files beside the corpus, under
+A completed container `verify expected` run writes two files beside the corpus, under
 `reports/<corpus>/`:
-
 - `haskell-latest.json`: raw per-sample results.
-- `haskell-latest.md`: a Markdown summary produced from that JSON by `scripts/make-report.py`.
-
-For example, verifying `/output/conway` writes
-`/output/reports/conway/haskell-latest.json` and
-`/output/reports/conway/haskell-latest.md`. Both are written even when samples
-fail; the verifier still exits unsuccessfully. Report-generation failures also
-cause an unsuccessful exit. If Markdown generation fails, the new JSON remains
-available for diagnosis and regeneration.
+- `haskell-latest.md`: a Markdown summary by `scripts/make-report.py`.
 
 The JSON is a single object keyed by corpus-relative sample paths, using forward
 slashes and including the `.input.cbor` suffix. Every sample has either `true`
@@ -333,6 +328,8 @@ Each run contains:
 - `report.txt`: per-module expression, alternatives, and boolean conditions
   (guards, `if` conditions, and qualifiers).
 - `report.xml`: the same coverage data in HPC's XML format.
+- `haskell-results.json` and `haskell-report.md`: raw results and the rendered
+  conformance report for `expected` runs, when produced successfully.
 - `html/hpc_index.html`: the main source-coverage report.
 - `html/hpc_index_alt.html`: alternative coverage by module.
 - `html/hpc_index_exp.html`: expression coverage by module.

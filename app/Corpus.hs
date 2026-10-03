@@ -47,7 +47,7 @@ import Report
   ( Reason,
     FailureKind (..),
     formatReason,
-    writeReport,
+    writeResults,
   )
 import Data.Aeson (eitherDecodeFileStrict')
 import Data.Map.Strict (Map)
@@ -60,7 +60,7 @@ import System.Directory
     writable,
   )
 import System.Exit (ExitCode (ExitFailure, ExitSuccess), die, exitFailure)
-import System.FilePath (splitDirectories, takeDirectory, takeFileName, (</>))
+import System.FilePath (splitDirectories, (</>))
 import System.IO (hPutStrLn, stderr)
 import System.Process (readProcessWithExitCode)
 import Text.Printf (printf)
@@ -68,11 +68,12 @@ import Text.Printf (printf)
 -- VERIFICATION MODES
 data VerificationMode
   = DeserializeOnly
-  | CheckExpectedOutput
+  -- | Check references and write raw results to the caller's output path.
+  | CheckExpectedOutput FilePath
 
 verificationModeName :: VerificationMode -> String
 verificationModeName DeserializeOnly = "deserialize"
-verificationModeName CheckExpectedOutput = "expected"
+verificationModeName (CheckExpectedOutput _) = "expected"
 
 data Expectation = MustDecode | MustReject
   deriving (Eq)
@@ -281,10 +282,10 @@ verifyFile DeserializeOnly datasetFile =
 -- | For a sample that must be rejected the only question is whether the decoder
 -- rejects it, so ask the decoder directly rather than routing through the
 -- re-encode and normalize steps, whose own failures would read as a rejection.
-verifyFile CheckExpectedOutput datasetFile
+verifyFile (CheckExpectedOutput _) datasetFile
   | isNothing (datasetFileExpectedPath datasetFile) =
       fmap (fmap $ const ()) $ checkDatasetFile decodeSample datasetFile
-verifyFile CheckExpectedOutput datasetFile = do
+verifyFile (CheckExpectedOutput _) datasetFile = do
   checked <- checkDatasetFile expectedBytes datasetFile
   case checked of
     Left reason -> pure $ Left reason
@@ -323,12 +324,11 @@ verifyFile CheckExpectedOutput datasetFile = do
             , "reserialization differs from the original bytes, which this rule hashes"
             )
 
-loadDataset :: EraSpec -> FilePath -> IO (FilePath, [DatasetFile], [FilePath])
+loadDataset :: EraSpec -> FilePath -> IO ([DatasetFile], [FilePath])
 loadDataset era datasetDir = do
   requireRealDirectory "dataset directory" datasetDir
   root <- canonicalizePath datasetDir
-  (files, absent) <- listDatasetFiles era root
-  pure (root, files, absent)
+  listDatasetFiles era root
 
 reportResult :: DatasetFile -> Either Reason a -> IO (Either Reason a)
 reportResult datasetFile result = do
@@ -340,7 +340,7 @@ reportResult datasetFile result = do
 
 verifyDataset :: EraSpec -> VerificationMode -> FilePath -> IO ()
 verifyDataset era mode datasetDir = do
-  (root, files, absent) <- loadDataset era datasetDir
+  (files, absent) <- loadDataset era datasetDir
   results <- forM files $ \datasetFile -> do
     outcome <- verifyFile mode datasetFile >>= reportResult datasetFile
     pure (datasetFile, outcome)
@@ -356,24 +356,17 @@ verifyDataset era mode datasetDir = do
   -- a deserialize run knows nothing about re-encoding.
   case mode of
     DeserializeOnly -> pure ()
-    CheckExpectedOutput -> do
-      let corpus = takeFileName root
-          reportDir = takeDirectory root </> "reports" </> corpus
-          reportPath = reportDir </> "haskell-latest.json"
-          markdownPath = reportDir </> "haskell-latest.md"
-          sampleResults =
+    CheckExpectedOutput reportPath -> do
+      let sampleResults =
             [ (intercalate "/" (splitDirectories $ datasetFileSample file) <> inputSuffix, outcome)
             | (file, outcome) <- results
             ]
-      writeResult <- try $ writeReport root reportPath markdownPath sampleResults
+      writeResult <- try $ writeResults reportPath sampleResults
       case writeResult of
-        Left (err :: IOException) -> die $ "cannot write conformance report: " <> show err
-        Right () -> do
-          putStrLn $ "  results:          " <> reportPath
-          putStrLn $ "  report:           " <> markdownPath
+        Left (err :: IOException) -> die $ "cannot write verification results: " <> show err
+        Right () -> putStrLn $ "  results:          " <> reportPath
 
-  -- Report generation can succeed even when samples fail; preserve the
-  -- verification exit status after publishing the results and report.
+  -- Publish all outcomes before returning a failing verification status.
   when (any (isLeft . snd) results) exitFailure
 
 -- | Write the normalized reference encoding of one generated @valid@ sample,
