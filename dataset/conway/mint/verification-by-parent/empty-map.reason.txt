@@ -1,0 +1,8 @@
+The specification writes mint as a non-empty map, and the MultiAsset type decodes an empty one without complaint. The
+ledger does not check emptiness in the type: it checks it at the one transaction body field that carries a mint, key
+9, with
+
+    bodyFields 9 = fieldGuarded (emptyFailure "Mint" "non-empty") (== mempty) ...
+
+so a transaction body carrying an empty mint is refused and the standalone bytes are not. mint is referenced nowhere
+else in the Conway specification, so the constraint is enforced everywhere it can be reached.

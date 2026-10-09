@@ -1,0 +1,5 @@
+proposal_procedures is nonempty_oset<proposal_procedure>, and OSet decodes an empty one without complaint: the ledger does not check emptiness in the type. It checks it at the one transaction body field that carries proposal_procedures, key 20, with
+
+    bodyFields 20 = fieldGuarded (emptyFailure "ProposalProcedures" "non-empty") ...
+
+so a transaction body carrying an empty one is refused and the standalone bytes are not. proposal_procedures is referenced nowhere else in the Conway specification, so the constraint is enforced everywhere it can be reached.

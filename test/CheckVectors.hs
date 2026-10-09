@@ -8,21 +8,21 @@
 -- not, and the table in the vector directory's README is the authority.
 module Main (main) where
 
-import Control.Monad (forM, unless)
-import qualified Data.ByteString as BS
-import Data.List (isSuffixOf, sort)
+import Data.ByteString qualified as BS
+import Data.List (isSuffixOf)
 import Normalize (normalizeBytes)
 import System.Directory (doesFileExist, listDirectory)
-import System.Environment (getArgs)
-import System.Exit (die, exitFailure)
 import System.FilePath ((</>))
 import Text.Printf (printf)
 
+-- | The suffixes a vector is named by, which are the corpus's own: a sample and
+-- the bytes it must normalize to, told apart by their names rather than by two
+-- directories.
 inputSuffix :: String
-inputSuffix = ".in.cbor"
+inputSuffix = ".input.cbor"
 
-outputSuffix :: String
-outputSuffix = ".out.cbor"
+expectedSuffix :: String
+expectedSuffix = ".expected.cbor"
 
 -- | Hex, so a mismatch can be read straight against the README's table without
 -- reaching for another tool.
@@ -33,13 +33,13 @@ data Outcome = Passed | Failed !String
 
 checkVector :: FilePath -> String -> IO Outcome
 checkVector directory name = do
-  let outputPath = directory </> name <> outputSuffix
-  hasOutput <- doesFileExist outputPath
+  let expectedPath = directory </> name <> expectedSuffix
+  hasOutput <- doesFileExist expectedPath
   if not hasOutput
-    then pure . Failed $ "no " <> name <> outputSuffix <> " beside the input"
+    then pure . Failed $ "no " <> name <> expectedSuffix <> " beside the input"
     else do
       input <- BS.readFile $ directory </> name <> inputSuffix
-      expected <- BS.readFile outputPath
+      expected <- BS.readFile expectedPath
       pure $ case normalizeBytes input of
         Left message -> Failed message
         Right actual
@@ -51,7 +51,7 @@ checkVector directory name = do
 -- than the table claims.
 orphanedOutputs :: [FilePath] -> [String]
 orphanedOutputs entries =
-  sort [name | entry <- entries, Just name <- [stripSuffix outputSuffix entry], name `notElem` inputs]
+  sort [name | entry <- entries, Just name <- [stripSuffix expectedSuffix entry], name `notElem` inputs]
   where
     inputs = [name | entry <- entries, Just name <- [stripSuffix inputSuffix entry]]
 
@@ -65,12 +65,13 @@ main = do
   arguments <- getArgs
   let directory = case arguments of
         (path : _) -> path
-        [] -> "normalization-vectors"
+        [] -> "dataset/normalization"
   entries <- listDirectory directory
   let names = sort [name | entry <- entries, Just name <- [stripSuffix inputSuffix entry]]
       orphans = orphanedOutputs entries
   unless (null orphans) $
-    die $ "outputs with no input in '" <> directory <> "': " <> show orphans
+    die $
+      "outputs with no input in '" <> directory <> "': " <> show orphans
   if null names
     then die $ "no vectors in '" <> directory <> "'"
     else do

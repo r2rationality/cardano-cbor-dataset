@@ -3,28 +3,30 @@
 -- | Filesystem checks shared by the commands that read or publish trees of
 -- CBOR files. Every check refuses symbolic links, so a corpus cannot smuggle
 -- reads or writes outside the directory it names.
-module Paths (
-  listDirectoryChecked,
-  publishDirectory,
-  requireCBORFile,
-  requireRealDirectory,
-) where
+module Paths
+  ( listDirectoryChecked,
+    publishDirectory,
+    requireCBORFile,
+    requireRealDirectory,
+    ledgerWaiversName,
+    parentWaiversName,
+    specDefectsName,
+  )
+where
 
 import Control.Exception (IOException, onException, try)
-import Data.List (sort)
 import System.Directory (listDirectory, makeAbsolute, removePathForcibly, renameDirectory)
-import System.Exit (die)
 import System.FilePath (isAbsolute, takeDirectory, takeExtension, takeFileName)
 import System.IO.Error (isDoesNotExistError)
 import System.IO.Temp (createTempDirectory)
-import System.Posix.Files (
-  FileStatus,
-  getSymbolicLinkStatus,
-  isDirectory,
-  isRegularFile,
-  isSymbolicLink,
-  setFileMode,
- )
+import System.Posix.Files
+  ( FileStatus,
+    getSymbolicLinkStatus,
+    isDirectory,
+    isRegularFile,
+    isSymbolicLink,
+    setFileMode,
+  )
 
 -- | 'Nothing' when the path does not exist; any other failure to inspect it is
 -- fatal, since carrying on would treat an unreadable path as an absent one.
@@ -115,3 +117,29 @@ publishDirectory destination build = do
   result <- (setFileMode staging 0o755 >> build staging) `onException` cleanup
   renameDirectory staging destination `onException` cleanup
   pure result
+
+-- | What an era keeps its incorrect specification list in.
+--
+-- Beside the corpus configuration at the top of the era, not inside a rule: an
+-- entry is a statement about the specification rather than about any sample,
+-- and gathering them in one file is what makes them reviewable together and
+-- easy to carry upstream.
+specDefectsName :: FilePath
+specDefectsName = "incorrect-specification.json"
+
+-- | What an era keeps its ledger verified waivers in.
+--
+-- Beside the incorrect specification list, and read the same way. The two say
+-- opposite things about the same kind of disagreement, so they are kept apart
+-- rather than told apart by a field.
+ledgerWaiversName :: FilePath
+ledgerWaiversName = "verified-by-ledger.json"
+
+-- | What an era keeps its parent verified waivers in.
+--
+-- The sample form of this waiver carries its own reason, and is the one to
+-- reach for. This file is for the obligations the sample form cannot settle:
+-- where the specification validator reads the bytes as valid, no sample can
+-- witness the obligation, so saying so is the only way to record it.
+parentWaiversName :: FilePath
+parentWaiversName = "verified-by-parent.json"

@@ -1,0 +1,8 @@
+[
+  {
+    "rule": "transaction_body",
+    "path": "map{14}.occur.value.validator.gen.choice[0].tag258",
+    "demand": "too few: 0 entries where 1 is the minimum",
+    "reason": "required_signers is nonempty_set<addr_keyhash>, and the ledger refuses an empty one at this field: a transaction body whose key 14 is d9010280 fails to decode with \"TxBody: 'Required Signer Hashes' must be non-empty when supplied\". The specification validator accepts the same bytes, so the matcher has no rejected sample to offer this obligation and it can never be witnessed. The sample is kept under manual-invalid, where it tests the ledger, and the obligation is settled here."
+  }
+]

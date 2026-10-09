@@ -1,0 +1,8 @@
+The specification writes withdrawals as a non-empty map, and the Withdrawals type decodes an empty one without
+complaint. The ledger does not check emptiness in the type: it checks it at the one transaction body field that
+carries withdrawals, key 5, with
+
+    bodyFields 5 = fieldGuarded (emptyFailure "Withdrawals" "non-empty") (null . unWithdrawals) ...
+
+so a transaction body carrying an empty withdrawals map is refused and the standalone bytes are not. withdrawals is
+referenced nowhere else in the Conway specification, so the constraint is enforced everywhere it can be reached.

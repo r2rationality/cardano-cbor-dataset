@@ -1,0 +1,26 @@
+[
+  {
+    "rule": "certificates",
+    "path": "validator.gen.choice[0].tag258",
+    "demand": "too few: 0 entries where 1 is the minimum",
+    "reason": "certificates is nonempty_oset<certificate>, and OSet decodes an empty one without complaint. The ledger checks emptiness at the one transaction body field that carries it, key 4, with bodyFields 4 = fieldGuarded (emptyFailure \"Certificates\" \"non-empty\") ..., so a transaction body carrying an empty one is refused. The specification validator reads the empty bytes as valid, so no sample can witness this obligation and the sample under verification-by-parent records what the standalone type lets through instead."
+  },
+  {
+    "rule": "certificates",
+    "path": "validator.gen.choice[1]",
+    "demand": "too few: 0 entries where 1 is the minimum",
+    "reason": "certificates is nonempty_oset<certificate>, and OSet decodes an empty one without complaint. The ledger checks emptiness at the one transaction body field that carries it, key 4, with bodyFields 4 = fieldGuarded (emptyFailure \"Certificates\" \"non-empty\") ..., so a transaction body carrying an empty one is refused. The specification validator reads the empty bytes as valid, so no sample can witness this obligation and the sample under verification-by-parent records what the standalone type lets through instead."
+  },
+  {
+    "rule": "proposal_procedures",
+    "path": "validator.gen.choice[0].tag258",
+    "demand": "too few: 0 entries where 1 is the minimum",
+    "reason": "proposal_procedures is nonempty_oset<proposal_procedure>, and OSet decodes an empty one without complaint. The ledger checks emptiness at the one transaction body field that carries it, key 20, with bodyFields 20 = fieldGuarded (emptyFailure \"ProposalProcedures\" \"non-empty\") ..., so a transaction body carrying an empty one is refused. The specification validator reads the empty bytes as valid, so no sample can witness this obligation and the sample under verification-by-parent records what the standalone type lets through instead."
+  },
+  {
+    "rule": "proposal_procedures",
+    "path": "validator.gen.choice[1]",
+    "demand": "too few: 0 entries where 1 is the minimum",
+    "reason": "proposal_procedures is nonempty_oset<proposal_procedure>, and OSet decodes an empty one without complaint. The ledger checks emptiness at the one transaction body field that carries it, key 20, with bodyFields 20 = fieldGuarded (emptyFailure \"ProposalProcedures\" \"non-empty\") ..., so a transaction body carrying an empty one is refused. The specification validator reads the empty bytes as valid, so no sample can witness this obligation and the sample under verification-by-parent records what the standalone type lets through instead."
+  }
+]
