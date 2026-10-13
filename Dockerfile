@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG HASKELL_IMAGE=docker.io/library/haskell:9.6.7@sha256:9ae9287b4b48a8e437c290b8aa1a4a0433a1c2a3d3cff965ad0883426a41c960
+ARG HASKELL_IMAGE=docker.io/blinklabs/haskell:9.6.7-3.12.1.0-3@sha256:1bd8c6f444ded67763ed8d421e8623185a1ffadf6a0c60081d2ac9b82e77bb8a
 ARG LEDGER_COMMIT=6176e413b2be9880c23cedbdaa899f9752693b22  #9714940b3f6527633ba37e47b93342b882ff7e67
 
 FROM ${HASKELL_IMAGE} AS crypto-base
@@ -133,8 +133,8 @@ RUN printf '%s\n' \
       '  flags: -external-libsodium-vrf' \
       > cabal.project.local
 
-RUN --mount=type=cache,target=/root/.cabal/store,sharing=locked \
-    --mount=type=cache,target=/opt/cardano-ledger/dist-newstyle,sharing=locked \
+RUN --mount=type=cache,id=cbor-blinklabs-9.6.7-3.12.1.0-3-store,target=/root/.cabal/store,sharing=locked \
+    --mount=type=cache,id=cbor-blinklabs-9.6.7-3.12.1.0-3-build,target=/opt/cardano-ledger/dist-newstyle,sharing=locked \
     cabal build --jobs="${CABAL_JOBS}" \
       cardano-ledger-api:exe:generate-cbor \
       cardano-cbor-dataset:exe:cbor \
@@ -157,7 +157,7 @@ FROM builder AS vector-check
 ARG CABAL_JOBS=8
 
 COPY test/ cbor-dataset/test/
-COPY normalization-vectors/ cbor-dataset/normalization-vectors/
+COPY dataset/normalization/ cbor-dataset/dataset/normalization/
 
 RUN printf '%s\n' \
       'tests: True' \
@@ -171,19 +171,24 @@ RUN printf '%s\n' \
 # The binary is run directly rather than through `cabal test`, so the vector
 # directory can be named as an argument and a failure prints the offending case
 # instead of a captured log path.
-RUN --mount=type=cache,target=/root/.cabal/store,sharing=locked \
-    --mount=type=cache,target=/opt/cardano-ledger/dist-newstyle,sharing=locked \
+RUN --mount=type=cache,id=cbor-blinklabs-9.6.7-3.12.1.0-3-store,target=/root/.cabal/store,sharing=locked \
+    --mount=type=cache,id=cbor-blinklabs-9.6.7-3.12.1.0-3-build,target=/opt/cardano-ledger/dist-newstyle,sharing=locked \
     cabal build --jobs="${CABAL_JOBS}" \
       cardano-cbor-dataset:test:normalization-vectors \
     && check="$(cabal list-bin cardano-cbor-dataset:test:normalization-vectors | tail -n 1)" \
     && test -x "$check" \
-    && "$check" cbor-dataset/normalization-vectors
+    && "$check" cbor-dataset/dataset/normalization
 
 FROM ${HASKELL_IMAGE} AS runtime
 
 ARG LEDGER_COMMIT
 
-ENV LANG=C.UTF-8
+ENV LANG=C.UTF-8 \
+    CBOR_REPORT_SCRIPT=/usr/local/bin/make-report.py
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 LABEL org.opencontainers.image.source="https://github.com/r2rationality/cardano-conway-cbor" \
       org.opencontainers.image.title="Cardano CBOR dataset generator and verifier" \
@@ -192,6 +197,7 @@ LABEL org.opencontainers.image.source="https://github.com/r2rationality/cardano-
 COPY --from=builder /usr/local/bin/generate-cbor /usr/local/bin/generate-cbor
 COPY --from=builder /usr/local/bin/cbor /usr/local/bin/cbor
 COPY scripts/cbor-entrypoint /usr/local/bin/cbor-entrypoint
+COPY scripts/make-report.py /usr/local/bin/make-report.py
 COPY --from=builder /opt/hpc/mix/ /opt/hpc/mix/
 COPY --from=builder /opt/hpc/hpcdirs /opt/hpc/hpcdirs
 COPY --from=builder /opt/hpc/srcdirs /opt/hpc/srcdirs

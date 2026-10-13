@@ -7,5 +7,6 @@
 !scripts/**
 !test/
 !test/**
-!normalization-vectors/
-!normalization-vectors/**
+!dataset/
+!dataset/normalization/
+!dataset/normalization/**

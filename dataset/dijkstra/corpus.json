@@ -1,0 +1,11 @@
+{
+  "seed": 123,
+  "samples": 100,
+  "rules": {
+    "%constr<plutus_data>": 800,
+    "block": 600,
+    "certificate": 600,
+    "gov_action": 600,
+    "native_script": 600
+  }
+}

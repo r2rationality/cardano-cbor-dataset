@@ -3,6 +3,12 @@
   "manifest": {
     "schema-version": "1.17.0",
     "install": {
+      "autoconf": {
+        "pkg-path": "autoconf"
+      },
+      "automake": {
+        "pkg-path": "automake"
+      },
       "cabal": {
         "pkg-path": "cabal-install"
       },
@@ -44,6 +50,9 @@
         "pkg-path": "haskellPackages.hspec-discover",
         "priority": 6
       },
+      "just": {
+        "pkg-path": "just"
+      },
       "libffi": {
         "pkg-path": "libffi",
         "systems": [
@@ -52,6 +61,9 @@
       },
       "libiconv": {
         "pkg-path": "libiconv"
+      },
+      "libtool": {
+        "pkg-path": "libtool"
       },
       "ncurses": {
         "pkg-path": "ncurses"
@@ -90,6 +102,124 @@
     }
   },
   "packages": [
+    {
+      "attr_path": "autoconf",
+      "broken": false,
+      "derivation": "/nix/store/sl2vz7ipqamxpj7hrngrw9423gndb6s0-autoconf-2.73.drv",
+      "description": "Part of the GNU Build System",
+      "install_id": "autoconf",
+      "license": "GPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "autoconf-2.73",
+      "pname": "autoconf",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:27.486363Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.73",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/dhdhclbrkpp1qzjx4msj2v2ndspvqfld-autoconf-2.73-doc",
+        "out": "/nix/store/lgw4zpmb69mw67p95i37b8q0zpc3qgff-autoconf-2.73"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "autoconf",
+      "broken": false,
+      "derivation": "/nix/store/l2lqamsw0szkhnx5vprxxzc6xzjfvv4a-autoconf-2.73.drv",
+      "description": "Part of the GNU Build System",
+      "install_id": "autoconf",
+      "license": "GPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "autoconf-2.73",
+      "pname": "autoconf",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:00.411804Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.73",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/z51h0h97lhjipaxab039a8i9a9xka5dc-autoconf-2.73-doc",
+        "out": "/nix/store/khvvqawiqhcz4i4frnxn7wjxchps7wj5-autoconf-2.73"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "automake",
+      "broken": false,
+      "derivation": "/nix/store/ls6488glmcprsn5djlfrl2zxdxpw03ag-automake-1.18.1.drv",
+      "description": "GNU standard-compliant makefile generator",
+      "install_id": "automake",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "automake-1.18.1",
+      "pname": "automake",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:27.487447Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.18.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/symh15r6l4giliyd40kqg7j0vr1xf8f3-automake-1.18.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "automake",
+      "broken": false,
+      "derivation": "/nix/store/xpvv3wrcd8pmli3sw4awz11hbr6b2a5y-automake-1.18.1.drv",
+      "description": "GNU standard-compliant makefile generator",
+      "install_id": "automake",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "automake-1.18.1",
+      "pname": "automake",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:00.413366Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.18.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/xvjmfiq7dlldw5njlyb4zkikdg853q1y-automake-1.18.1"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
     {
       "attr_path": "cabal-install",
       "broken": false,
@@ -171,6 +301,7 @@
         "out",
         "out",
         "out",
+        "out",
         "out"
       ],
       "outputs": {
@@ -201,6 +332,10 @@
       "unfree": false,
       "version": "9.11",
       "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
         "out",
         "out",
         "out",
@@ -240,6 +375,9 @@
       "outputs_to_install": [
         "bin",
         "bin",
+        "bin",
+        "bin",
+        "man",
         "man",
         "man"
       ],
@@ -277,6 +415,9 @@
         "bin",
         "bin",
         "bin",
+        "bin",
+        "bin",
+        "man",
         "man",
         "man",
         "man"
@@ -350,6 +491,11 @@
         "bin",
         "bin",
         "bin",
+        "bin",
+        "bin",
+        "bin",
+        "bin",
+        "bin",
         "bin"
       ],
       "outputs": {
@@ -384,6 +530,7 @@
       "unfree": false,
       "version": "6.3.0",
       "outputs_to_install": [
+        "out",
         "out",
         "out",
         "out",
@@ -422,6 +569,8 @@
         "out",
         "out",
         "out",
+        "out",
+        "out",
         "out"
       ],
       "outputs": {
@@ -454,6 +603,7 @@
       "version": "1.14",
       "outputs_to_install": [
         "man",
+        "out",
         "out",
         "out"
       ],
@@ -489,6 +639,9 @@
         "man",
         "man",
         "man",
+        "out",
+        "out",
+        "out",
         "out",
         "out",
         "out",
@@ -626,6 +779,70 @@
       "priority": 6
     },
     {
+      "attr_path": "just",
+      "broken": false,
+      "derivation": "/nix/store/xhflrb4vyqqqc1j09rjcgk3gd27n76j4-just-1.58.0.drv",
+      "description": "Handy way to save and run project-specific commands",
+      "install_id": "just",
+      "license": "CC0-1.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "just-1.58.0",
+      "pname": "just",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:45.129259Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.58.0",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/wfs31mbwslvi17fxswf81x0a83qcmnyq-just-1.58.0-doc",
+        "man": "/nix/store/s8abw9ifkmxk79z8zpn6zm9zrpbmh9zb-just-1.58.0-man",
+        "out": "/nix/store/kcyk3qjxrxbqv110yz408277m1i55faf-just-1.58.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "just",
+      "broken": false,
+      "derivation": "/nix/store/qc80gms126x8835chicai7zkawkvwg4c-just-1.58.0.drv",
+      "description": "Handy way to save and run project-specific commands",
+      "install_id": "just",
+      "license": "CC0-1.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "just-1.58.0",
+      "pname": "just",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:24.604868Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.58.0",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/3kkygdf8x15png0ghk45r2g8px981zrd-just-1.58.0-doc",
+        "man": "/nix/store/ihi5s36gfidvbf6wrymh0z6qjb69bvhx-just-1.58.0-man",
+        "out": "/nix/store/nvydswi7ickfaim3l29afrm2238fjzlv-just-1.58.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
       "attr_path": "libffi",
       "broken": false,
       "derivation": "/nix/store/giwqqybcxq2ghc7kmkwq94b48d56wvr0-libffi-3.8.0.drv",
@@ -647,6 +864,10 @@
       "outputs_to_install": [
         "man",
         "man",
+        "out",
+        "out",
+        "out",
+        "out",
         "out",
         "out",
         "out",
@@ -684,6 +905,7 @@
       "unfree": false,
       "version": "115.100.1",
       "outputs_to_install": [
+        "out",
         "out",
         "out",
         "out",
@@ -728,6 +950,66 @@
       "priority": 5
     },
     {
+      "attr_path": "libtool",
+      "broken": false,
+      "derivation": "/nix/store/6q96yq2gsmaxl9jrpmamw4s3qb8vh6w0-libtool-2.6.2.drv",
+      "description": "GNU Libtool, a generic library support script",
+      "install_id": "libtool",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "libtool-2.6.2",
+      "pname": "libtool",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T04:58:47.148459Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.6.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "lib": "/nix/store/a8d5gap61byhpl1lbyv163yhzpsjhyf2-libtool-2.6.2-lib",
+        "out": "/nix/store/dsxr7vbgijgz74ckzpkpw0wygpkdp3n1-libtool-2.6.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "libtool",
+      "broken": false,
+      "derivation": "/nix/store/4apzy46xbn2panfvfj9fir8nsfgnzd6n-libtool-2.6.2.drv",
+      "description": "GNU Libtool, a generic library support script",
+      "install_id": "libtool",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "name": "libtool-2.6.2",
+      "pname": "libtool",
+      "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+      "rev_count": 1080855,
+      "rev_date": "2026-09-28T06:58:16Z",
+      "scrape_date": "2026-09-29T06:06:28.554900Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.6.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "lib": "/nix/store/a0bl51i3h2wmhaf055kf1rv6bkl86w8l-libtool-2.6.2-lib",
+        "out": "/nix/store/6yfpjsrh331f5kwal7nlnlkj19w8bvsy-libtool-2.6.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
       "attr_path": "ncurses",
       "broken": false,
       "derivation": "/nix/store/2mlfg92c0w7ssg7c42x55jmrwjgz2afv-ncurses-6.6.drv",
@@ -750,6 +1032,10 @@
         "man",
         "man",
         "man",
+        "man",
+        "man",
+        "out",
+        "out",
         "out",
         "out",
         "out"
@@ -786,6 +1072,12 @@
         "man",
         "man",
         "man",
+        "man",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
         "out",
         "out",
         "out",
@@ -822,6 +1114,11 @@
       "version": "2.0.18",
       "outputs_to_install": [
         "man",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
         "out",
         "out",
         "out",
@@ -917,6 +1214,7 @@
       "version": "0.15.2",
       "outputs_to_install": [
         "out",
+        "out",
         "out"
       ],
       "outputs": {
@@ -981,6 +1279,7 @@
         "man",
         "out",
         "out",
+        "out",
         "out"
       ],
       "outputs": {
@@ -1016,6 +1315,7 @@
         "out",
         "out",
         "out",
+        "out",
         "out"
       ],
       "outputs": {
@@ -1047,6 +1347,10 @@
       "unfree": false,
       "version": "1.3.2",
       "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
         "out",
         "out",
         "out",
