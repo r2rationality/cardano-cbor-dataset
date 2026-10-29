@@ -261,6 +261,32 @@ When the corpus passes, the command writes the result of each sample to a JSON f
  - When you run the `cbor` binary directly, you must give the path of the JSON file as the last argument:
    `cbor verify dijkstra dataset/dijkstra results.json`.
 
+#### Required environment variables
+
+The report names the two commits that produced it. `verify` and `generate` read them from the environment and stop with
+an error if one is missing or is not a full hash of 40 hexadecimal digits.
+
+| Variable                     | Content                                                           |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `CBOR_DATASET_COMMIT`        | The commit of this repository that holds the samples.             |
+| `CBOR_IMPLEMENTATION_COMMIT` | The commit of the Cardano Ledger code that decodes the samples.   |
+
+How to set them depends on how you run the command:
+
+ - **In the container**, the image sets `CBOR_IMPLEMENTATION_COMMIT` already. It is the Cardano Ledger revision that the
+   `Dockerfile` pins with `ARG CBOR_IMPLEMENTATION_COMMIT`, and the image has a label of the same name, which
+   `docker inspect` shows. You must set `CBOR_DATASET_COMMIT`:
+   ```sh
+   docker run --rm -e CBOR_DATASET_COMMIT=$(git rev-parse HEAD) -v "$PWD/dataset:/output" cbor verify conway /output/conway
+   ```
+ - **With `just refresh-dataset`**, you set nothing. The script reads `ARG CBOR_IMPLEMENTATION_COMMIT` in the
+   `Dockerfile` and runs `git rev-parse HEAD` for the dataset.
+ - **With the `cbor` binary directly**, export both variables in your shell:
+   ```sh
+   export CBOR_DATASET_COMMIT=$(git rev-parse HEAD)
+   export CBOR_IMPLEMENTATION_COMMIT=$(git -C .cache/cardano-ledger rev-parse HEAD)
+   ```
+
 ## Cardano CBOR dataset for users
 
 Users of this repository are expected to:
@@ -277,23 +303,50 @@ Users of this repository are expected to:
 
 ### Report output format
 
-Node implementors must produce a JSON report with the following format:
+Node implementors must produce a JSON report with the following format. The file
+[schema/report.schema.json](schema/report.schema.json) is a JSON Schema for it.
 
 ```json
 {
-  "auxiliary_data/valid/00003-2f2bacfd41c291d4.input.cbor": true,
-  "auxiliary_data/invalid-zap-1/00001-example.input.cbor": "decode: succeeded when expected to fail"
+  "version": "2",
+  "generated_at": 1793210818483,
+  "protocol_version": "11.0",
+  "dataset_commit": "f7b3b4e7f8cbf9b585f82153d60b3f6065a5b513",
+  "implementation_commit": "6176e413b2be9880c23cedbdaa899f9752693b22",
+  "results": {
+    "auxiliary_data/valid/00003-2f2bacfd41c291d4.input.cbor": true,
+    "auxiliary_data/invalid-zap-1/00001-example.input.cbor": "decode: succeeded when expected to fail"
+  }
 }
 ```
 
-The JSON is a single object keyed by corpus-relative sample paths, using forward slashes and including the `.input.cbor` suffix.
-Every sample is either `true` when it meets its expectation or an error message string (see
+All fields are required:
+
+| Field                   | Content                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `version`               | The version of this format: the string `"2"`. A change of the format changes it.      |
+| `era`                   | The era of the dataset that was tested, in lower case: `conway` or `dijkstra`.        |
+| `generated_at`          | When the report was made, in milliseconds since the Unix epoch.                       |
+| `protocol_version`      | The protocol version that the node used to decode, as `<major>.<minor>`.              |
+| `dataset_commit`        | The full hash of the commit of this repository that holds the samples.                |
+| `implementation_commit` | The full hash of the commit of the node code that ran the samples.                    |
+| `results`               | The outcome of every sample.                                                          |
+
+The commits tell a reader which dataset and which node produced the report. Both are lowercase hexadecimal hashes of
+40 digits: a branch name or a short hash is not enough.
+
+See [Required environment variables](#required-environment-variables) for how to find the two commits.
+
+`results` is a single object keyed by corpus-relative sample paths, using forward slashes and including the
+`.input.cbor` suffix. Every sample is either `true` when it meets its expectation or an error message string (see
 [VERIFICATION.md](VERIFICATION.md) for a more precise discussion on expectations).
 
 Error strings use the format `<category>: <message>`, with the following categories:
 
  - `decode` for decoding or input-read failures.
  - `encode` for normalization, re-encoding comparisons or reference-read failures.
+
+Version 1 was the `results` object alone, with no other field. `scripts/make-report.py` does not read it.
 
 #### Markdown report
 
@@ -310,8 +363,8 @@ or missing results. Missing results count against the success rate; result paths
 Since the Haskell node is a reference implementation for the CBOR datasets, we keep a copy of its reports in this repository.
 
 A completed container `verify` run writes two files beside the corpus, under `reports/<corpus>/`:
-- `haskell-latest.json`: raw per-sample results.
-- `haskell-latest.md`: a Markdown summary by `scripts/make-report.py`.
+- `haskell-latest.json`: the report, with the commits that made it and the result of every sample.
+- `haskell-latest.md`: a Markdown summary by `scripts/make-report.py`, with the same commits.
 
 The `turbocardano-latest.json` files beside them are reports from another implementation, TurboCardano. They were made
 on 2026-10-03 against an older corpus, so many of their paths are no longer in the dataset, and `make-report.py`

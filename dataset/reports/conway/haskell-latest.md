@@ -1,6 +1,11 @@
 # Cardano CBOR Decoder/Encoder Conformance Report
 
 **Corpus:** dataset / conway  
+**Era:** conway  
+**Dataset commit:** `f7b3b4e7f8cbf9b585f82153d60b3f6065a5b513`  
+**Implementation commit:** `6176e413b2be9880c23cedbdaa899f9752693b22`  
+**Protocol version:** 11.0  
+**Generated:** 2026-10-29 10:43:03 UTC  
 **Result:** 100.00% (42,675/42,675) passed; 0 failed, 0 missing results.
 
 Cells show success percentage (passed/total), including missing results in the total. Valid samples must decode and re-encode to the expected bytes. Invalid samples must be rejected. A dash means no samples.
