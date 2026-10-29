@@ -277,7 +277,7 @@ readLedgerPin path = do
           head
           [ LedgerPin commit
           | line <- T.lines contents,
-            Just rest <- [T.stripPrefix "ARG LEDGER_COMMIT=" (T.strip line)],
+            Just rest <- [T.stripPrefix "ARG CBOR_IMPLEMENTATION_COMMIT=" (T.strip line)],
             let commit = T.takeWhile isHexDigit rest,
             T.length commit == 40
           ]

@@ -2,12 +2,16 @@
 
 import argparse
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import html
 import json
+import re
 from pathlib import Path
 import sys
 
 INPUT_SUFFIX = ".input.cbor"
+REPORT_VERSION = "2"
+COMMIT = re.compile(r"[0-9a-f]{40}")
 
 @dataclass
 class Counts:
@@ -21,14 +25,29 @@ def markdown(value):
         text = text.replace(char, "\\" + char)
     return text.replace("\n", "<br>")
 
-def read_results(path):
-    results = json.loads(path.read_text(encoding="utf-8"))
+def read_report(path):
+    """Read a report of the current format and return it with its `results` checked."""
+    report = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(report, dict):
+        raise ValueError("a report must be a JSON object")
+    if report.get("version") != REPORT_VERSION:
+        raise ValueError(f'unsupported report version {report.get("version")!r}, expected "{REPORT_VERSION}"')
+    for field in ("dataset_commit", "implementation_commit"):
+        if not isinstance(report.get(field), str) or not COMMIT.fullmatch(report[field]):
+            raise ValueError(f"{field} must be a full commit hash (40 lowercase hexadecimal digits)")
+    if not isinstance(report.get("generated_at"), int) or isinstance(report["generated_at"], bool):
+        raise ValueError("generated_at must be an integer: milliseconds since the Unix epoch")
+    if not isinstance(report.get("era"), str) or not report["era"]:
+        raise ValueError("era must be the name of the era of the dataset, for example conway")
+    if not isinstance(report.get("protocol_version"), str):
+        raise ValueError("protocol_version must be a string")
+    results = report.get("results")
     if not isinstance(results, dict):
         raise ValueError("results must be a JSON object mapping sample paths to outcomes")
     for outcome in results.values():
         if outcome is not True and not isinstance(outcome, str):
             raise ValueError("each result must be true or an error string")
-    return results
+    return report
 
 def table_cell(counts):
     percentage = "—"
@@ -36,7 +55,12 @@ def table_cell(counts):
         percentage = f"{100 * counts.passed / counts.total:.2f}%"
     return f"{percentage} ({counts.passed:,}/{counts.total:,})"
 
-def make_report(dataset, results):
+def generated_at(milliseconds):
+    moment = datetime.fromtimestamp(milliseconds / 1000, tz=timezone.utc)
+    return moment.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+def make_report(dataset, report):
+    results = report["results"]
     rules = {}
     totals = {"valid": Counts(), "invalid": Counts()}
     overall = Counts()
@@ -72,6 +96,11 @@ def make_report(dataset, results):
         "# Cardano CBOR Decoder/Encoder Conformance Report",
         "",
         f"**Corpus:** {markdown(dataset.parent.name)} / {markdown(dataset.name)}  ",
+        f"**Era:** {markdown(report['era'])}  ",
+        f"**Dataset commit:** `{report['dataset_commit']}`  ",
+        f"**Implementation commit:** `{report['implementation_commit']}`  ",
+        f"**Protocol version:** {markdown(report['protocol_version'])}  ",
+        f"**Generated:** {generated_at(report['generated_at'])}  ",
         f"**Result:** {table_cell(overall)} passed; "
         f"{failed:,} failed, {missing:,} missing results.",
         "",
@@ -95,13 +124,13 @@ def make_report(dataset, results):
 def main():
     parser = argparse.ArgumentParser(description="Write a CBOR dataset report to stdout.")
     parser.add_argument("dataset", type=Path, help="era directory passed to test-cbor-dataset")
-    parser.add_argument("results", type=Path, help="JSON written by --results-file")
+    parser.add_argument("results", type=Path, help="report written by `cbor verify`")
     args = parser.parse_args()
     try:
         dataset = args.dataset.resolve()
         if not dataset.is_dir():
             raise ValueError(f"not a dataset directory: {dataset}")
-        report = make_report(dataset, read_results(args.results))
+        report = make_report(dataset, read_report(args.results))
         sys.stdout.write(report)
     except (OSError, ValueError) as error:
         parser.exit(2, f"error: {error}\n")
