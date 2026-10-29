@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cardano CBOR conformance report",
+  "description": "The result of one node implementation on one corpus of the Cardano CBOR dataset.",
+  "type": "object",
+  "required": ["version", "era", "generated_at", "protocol_version", "dataset_commit", "implementation_commit", "results"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "The version of this report format.",
+      "const": "2"
+    },
+    "generated_at": {
+      "description": "When the report was made, in milliseconds since the Unix epoch.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "protocol_version": {
+      "description": "The protocol version that the node used to decode the samples, as <major>.<minor>.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "dataset_commit": {
+      "description": "The commit of the cardano-cbor-dataset repository that holds the samples.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "implementation_commit": {
+      "description": "The commit of the node code that ran the samples.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "results": {
+      "description": "One entry per sample, keyed by the path of the sample relative to the corpus, with forward slashes and the .input.cbor suffix. The value is true when the sample meets its expectation, or an error message of the form '<category>: <message>'.",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "\\.input\\.cbor$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          { "const": true },
+          { "type": "string", "pattern": "^(decode|encode): " }
+        ]
+      }
+    }
+  }
+}

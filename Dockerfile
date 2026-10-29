@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG HASKELL_IMAGE=docker.io/blinklabs/haskell:9.6.7-3.12.1.0-3@sha256:1bd8c6f444ded67763ed8d421e8623185a1ffadf6a0c60081d2ac9b82e77bb8a
-ARG LEDGER_COMMIT=6176e413b2be9880c23cedbdaa899f9752693b22  #9714940b3f6527633ba37e47b93342b882ff7e67
+ARG CBOR_IMPLEMENTATION_COMMIT=6176e413b2be9880c23cedbdaa899f9752693b22  #9714940b3f6527633ba37e47b93342b882ff7e67
 
 FROM ${HASKELL_IMAGE} AS crypto-base
 
@@ -103,16 +103,16 @@ RUN ldconfig \
 
 FROM crypto-builder AS builder
 
-ARG LEDGER_COMMIT
+ARG CBOR_IMPLEMENTATION_COMMIT
 
 ENV CABAL_DIR=/root/.cabal
 
 WORKDIR /opt/cardano-ledger
 RUN git init . \
     && git remote add origin https://github.com/IntersectMBO/cardano-ledger.git \
-    && git fetch --depth 1 origin "${LEDGER_COMMIT}" \
+    && git fetch --depth 1 origin "${CBOR_IMPLEMENTATION_COMMIT}" \
     && git checkout --detach FETCH_HEAD \
-    && test "$(git rev-parse HEAD)" = "${LEDGER_COMMIT}"
+    && test "$(git rev-parse HEAD)" = "${CBOR_IMPLEMENTATION_COMMIT}"
 
 RUN cabal update
 
@@ -182,10 +182,11 @@ RUN --mount=type=cache,id=cbor-blinklabs-9.6.7-3.12.1.0-3-store,target=/root/.ca
 
 FROM ${HASKELL_IMAGE} AS runtime
 
-ARG LEDGER_COMMIT
+ARG CBOR_IMPLEMENTATION_COMMIT
 
 ENV LANG=C.UTF-8 \
-    CBOR_REPORT_SCRIPT=/usr/local/bin/make-report.py
+    CBOR_REPORT_SCRIPT=/usr/local/bin/make-report.py \
+    CBOR_IMPLEMENTATION_COMMIT=${CBOR_IMPLEMENTATION_COMMIT}
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 \
@@ -193,7 +194,7 @@ RUN apt-get update \
 
 LABEL org.opencontainers.image.source="https://github.com/r2rationality/cardano-conway-cbor" \
       org.opencontainers.image.title="Cardano CBOR dataset generator and verifier" \
-      io.github.r2rationality.cardano-ledger.revision="${LEDGER_COMMIT}"
+      CBOR_IMPLEMENTATION_COMMIT="${CBOR_IMPLEMENTATION_COMMIT}"
 
 COPY --from=builder /usr/local/bin/generate-cbor /usr/local/bin/generate-cbor
 COPY --from=builder /usr/local/bin/cbor /usr/local/bin/cbor

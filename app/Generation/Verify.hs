@@ -18,9 +18,10 @@ import Path (Abs, Dir, File, Path)
 --   does not pass.
 verifyDataset :: EraSpec -> Path Abs Dir -> Path Abs File -> IO ()
 verifyDataset era datasetDir reportPath = do
+  revisions <- readRevisions
   dataset <- loadDataset era datasetDir
   verification <- checkDataset dataset
-  writeVerificationResults reportPath verification
+  writeVerificationResults reportPath era revisions verification
   unless (verificationPassed verification) exitFailure
 
 -- | Check every sample of a dataset. Every sample must be accepted or rejected as its directory says. Every accepted

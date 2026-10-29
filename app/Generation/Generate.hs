@@ -34,6 +34,8 @@ import Path.IO qualified as PathIO
 --  Finally the staging area is published to the destination directory if the run was successful.
 generateDataset :: EraSpec -> [RuleName] -> ConfigSource -> GenerationChecks -> Path Abs Dir -> IO ()
 generateDataset eraSpec onlyRules configSource checks outputDir = do
+  -- the revisions are read first, so that a missing commit stops the run before the slow generation
+  revisions <- if checkVerification checks then Just <$> readRevisions else pure Nothing
   createOutputDirectory outputDir
   destination <- outputDir <//> eraSpecName eraSpec
 
@@ -72,9 +74,9 @@ generateDataset eraSpec onlyRules configSource checks outputDir = do
   -- report results and run checks
   putTextLn $ "Generated " <> show (getSum (generated result)) <> "/" <> show (targetSamplesFor config rules) <> " samples in " <> display outputDir
 
-  when (checkVerification checks) $ do
+  for_ revisions $ \revision -> do
     resultsPath <- outputDir </*//> "reports" :| [eraSpecName eraSpec, "haskell-latest.json"]
-    writeVerificationResults resultsPath (verification result)
+    writeVerificationResults resultsPath eraSpec revision (verification result)
 
 data GenerationResult = GenerationResult
   { generated :: Sum Int,

@@ -33,6 +33,13 @@ if ! command -v generate-cbor >/dev/null 2>&1; then
   export PATH
 fi
 
+# The reports say which dataset and which node code produced them. The node code is the ledger revision pinned in
+# `Dockerfile`, which `setup-cache` checks out. The dataset is the commit that holds the samples: the parent of a
+# working copy that jj keeps, which is what `git` calls HEAD.
+CBOR_IMPLEMENTATION_COMMIT=$(sed -n 's/^ARG CBOR_IMPLEMENTATION_COMMIT=\([0-9a-f]\{40\}\).*/\1/p' Dockerfile | head -1)
+CBOR_DATASET_COMMIT=$(git rev-parse HEAD)
+export CBOR_IMPLEMENTATION_COMMIT CBOR_DATASET_COMMIT
+
 for era in ${ERAS:-conway dijkstra}; do
   echo "generating $era"
   "$binary" generate --era "$era" dataset
