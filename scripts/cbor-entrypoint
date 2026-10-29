@@ -23,6 +23,12 @@ if [ "$#" -ne 3 ]; then
 fi
 dataset=$3
 
+# The report names the dataset commit. The image knows the node commit, but the dataset is mounted.
+if [ -z "${CBOR_DATASET_COMMIT-}" ]; then
+  echo "set CBOR_DATASET_COMMIT to the commit of the dataset, for example: docker run -e CBOR_DATASET_COMMIT=<hash> ..." >&2
+  exit 2
+fi
+
 # Resolve relative paths before naming the corpus's published reports.
 dataset_root=$(realpath -e -- "$dataset")
 dataset_name=$(basename "$dataset_root")

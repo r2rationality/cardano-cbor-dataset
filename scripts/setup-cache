@@ -42,7 +42,7 @@ checkout() {
   }
 }
 
-checkout cardano-ledger https://github.com/IntersectMBO/cardano-ledger.git "$(revision LEDGER_COMMIT)"
+checkout cardano-ledger https://github.com/IntersectMBO/cardano-ledger.git "$(revision CBOR_IMPLEMENTATION_COMMIT)"
 checkout libsodium https://github.com/input-output-hk/libsodium.git "$(revision LIBSODIUM_COMMIT)"
 checkout secp256k1 https://github.com/bitcoin-core/secp256k1.git "$(revision LIBSECP256K1_COMMIT)"
 checkout blst https://github.com/supranational/blst.git "$(revision LIBBLST_COMMIT)"
