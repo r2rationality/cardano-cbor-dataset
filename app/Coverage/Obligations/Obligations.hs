@@ -554,8 +554,9 @@ impliedByArity rules entries path obligation = case obligationKind obligation of
 statesALength :: Map Name RuleNode -> [RuleNode] -> Bool
 statesALength rules entries = any (statesAnArity . obligationKind) (containerLength rules startTrail entries)
   where
+    -- An empty container carries none of its entries, so it says nothing about them.
     statesAnArity = \case
-      AcceptArity _ -> True
+      AcceptArity size -> size > 0
       _ -> False
 
 -- | The entries of a container, each with the step to its position in the bytes, not in the specification.
@@ -603,6 +604,7 @@ splicedPositions rules entries = case span fixed leaves of
 --  A length under the minimum and a length over the maximum must be rejected.
 --  Each length in between must be accepted, when there are two to four of them.
 --  A container with a repeated entry must also accept a length that repeats it.
+--  A container that may be empty must accept the empty one, even where its lengths are too many to ask for each.
 --  An occurrence indicator bounds only its own entry, so only this sum bounds the whole container.
 containerLength :: Map Name RuleNode -> Trail Absolute -> [RuleNode] -> [Obligation]
 containerLength rules path entries = case totalWidth rules entries of
@@ -618,6 +620,7 @@ containerLength rules path entries = case totalWidth rules entries of
       size <- lengths,
       obligation <- at (AcceptArity (fromIntegral size))
     ]
+      <> [obligation | low == 0, maybe True (> 0) high, not (zeroAsked low high), obligation <- at (AcceptArity 0)]
       <> [obligation | low > 0, obligation <- at (TooFew low)]
       <> [obligation | Just top <- [high], obligation <- at (TooMany top)]
       <> [ obligation
@@ -628,6 +631,10 @@ containerLength rules path entries = case totalWidth rules entries of
     at = pure ... obligationAt path
     -- how many distinct lengths a container may have before its length stops being the interesting thing about it.
     widestUsefulRange = 4
+    -- Whether the lengths asked for above already include the empty one.
+    zeroAsked low high = case high of
+      Just top -> let count = length [low .. top] in count > 1 && count <= widestUsefulRange
+      Nothing -> False
 
 -- | The obligations of a required map entry: a valid sample has its key, and a sample without its key is rejected.
 --
