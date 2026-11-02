@@ -30,7 +30,11 @@ spec = do
         `shouldMatchList` [ (".", NoBranchMatches [ShapeLiteral (LitUInt 0), ShapeLiteral (LitUInt 1)]),
                             (".", BelowRange 0),
                             (".", AboveRange 1),
+                            ("choice[0:=0]", AcceptWideHead),
+                            ("choice[0:=0]", AcceptWidestHead),
                             ("choice[0:=0]", AcceptLiteral (LitUInt 0)),
+                            ("choice[1:=1]", AcceptWideHead),
+                            ("choice[1:=1]", AcceptWidestHead),
                             ("choice[1:=1]", AcceptLiteral (LitUInt 1))
                           ]
 
@@ -40,6 +44,8 @@ spec = do
       -- vote = 0 .. 2
       obligationKinds "vote"
         `shouldMatchList` [ (".", AcceptBoundary 0),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", AcceptBoundary 2),
                             (".", InsideRange 0 2),
                             (".", BelowRange 0),
@@ -52,6 +58,8 @@ spec = do
       -- A range endpoint is followed through the reference.
       obligationKinds "positive_coin"
         `shouldMatchList` [ (".", AcceptBoundary 1),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", AcceptBoundary 18446744073709551615),
                             (".", InsideRange 1 18446744073709551615),
                             (".", BelowRange 1),
@@ -66,6 +74,8 @@ spec = do
       -- of its payload. CBOR does not limit the length of that byte string, so the 64 bytes are still stated.
       obligationKinds "big_uint"
         `shouldMatchList` [ (".", AcceptTag 2),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", WrongTag 2),
                             ("tag2.control", AcceptSize 0 64),
                             ("tag2.control", ViolateSizeAbove 64)
@@ -79,7 +89,7 @@ spec = do
       -- unit_interval = #6.30([uint, uint])
       -- A plain 0 is refused by no obligation under the tag, since none of them can reach it.
       [kind | ("gen", kind) <- obligationKinds "unit_interval"]
-        `shouldMatchList` [AcceptTag 30, WrongTag 30, MissingTag 30]
+        `shouldMatchList` [AcceptTag 30, WrongTag 30, MissingTag 30, AcceptWideHead, AcceptWidestHead]
       -- The decoder folds a bignum that fits into a plain integer, so an untagged integer is not a missing tag 2.
       [kind | (_, kind@(MissingTag _)) <- obligationKinds "big_uint"] `shouldBe` []
 
@@ -95,8 +105,12 @@ spec = do
       --   )
       obligationKinds "auxiliary_data_map"
         `shouldMatchList` [ (".", AcceptTag 259),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", WrongTag 259),
                             (".", MissingTag 259),
+                            ("tag259", AcceptWideHead),
+                            ("tag259", AcceptWidestHead),
                             ("tag259", WrongType PrimMap),
                             ("tag259", AcceptDefinite),
                             ("tag259", AcceptIndefinite),
@@ -108,21 +122,29 @@ spec = do
                             ("tag259.map{1}.occur0.value", WrongType PrimArray),
                             ("tag259.map{1}.occur0.value", AcceptDefinite),
                             ("tag259.map{1}.occur0.value", AcceptIndefinite),
+                            ("tag259.map{1}.occur0.value", AcceptWideHead),
+                            ("tag259.map{1}.occur0.value", AcceptWidestHead),
                             ("tag259.map{1}.occur0.value", AcceptArity 2),
                             ("tag259.map{1}.occur0.value.array[0].repeat0", WrongReference (Name "native_script")),
                             ("tag259.map{2}.occur0.value", WrongType PrimArray),
                             ("tag259.map{2}.occur0.value", AcceptDefinite),
                             ("tag259.map{2}.occur0.value", AcceptIndefinite),
+                            ("tag259.map{2}.occur0.value", AcceptWideHead),
+                            ("tag259.map{2}.occur0.value", AcceptWidestHead),
                             ("tag259.map{2}.occur0.value", AcceptArity 2),
                             ("tag259.map{2}.occur0.value.array[0].repeat0", WrongReference (Name "plutus_v1_script")),
                             ("tag259.map{3}.occur0.value", WrongType PrimArray),
                             ("tag259.map{3}.occur0.value", AcceptDefinite),
                             ("tag259.map{3}.occur0.value", AcceptIndefinite),
+                            ("tag259.map{3}.occur0.value", AcceptWideHead),
+                            ("tag259.map{3}.occur0.value", AcceptWidestHead),
                             ("tag259.map{3}.occur0.value", AcceptArity 2),
                             ("tag259.map{3}.occur0.value.array[0].repeat0", WrongReference (Name "plutus_v2_script")),
                             ("tag259.map{4}.occur0.value", WrongType PrimArray),
                             ("tag259.map{4}.occur0.value", AcceptDefinite),
                             ("tag259.map{4}.occur0.value", AcceptIndefinite),
+                            ("tag259.map{4}.occur0.value", AcceptWideHead),
+                            ("tag259.map{4}.occur0.value", AcceptWidestHead),
                             ("tag259.map{4}.occur0.value", AcceptArity 2),
                             ("tag259.map{4}.occur0.value.array[0].repeat0", WrongReference (Name "plutus_v3_script"))
                           ]
@@ -135,11 +157,17 @@ spec = do
       obligationKinds "big_int"
         `shouldMatchList` [ (".", NoBranchMatches [ShapePrimitive PrimInt, ShapeTag 2, ShapeTag 3]),
                             (".", NoTagMatches [2, 3]),
+                            ("choice[0:int]", AcceptWideHead),
+                            ("choice[0:int]", AcceptWidestHead),
                             ("choice[0:int]", AcceptType PrimInt),
                             ("choice[0:int]", AcceptBoundary (-18446744073709551616)),
                             ("choice[0:int]", AcceptBoundary 18446744073709551615),
+                            ("choice[1:tag2]", AcceptWideHead),
+                            ("choice[1:tag2]", AcceptWidestHead),
                             ("choice[1:tag2].tag2.control", AcceptSize 0 64),
                             ("choice[1:tag2].tag2.control", ViolateSizeAbove 64),
+                            ("choice[2:tag3]", AcceptWideHead),
+                            ("choice[2:tag3]", AcceptWidestHead),
                             ("choice[2:tag3].tag3.control", AcceptSize 0 64),
                             ("choice[2:tag3].tag3.control", ViolateSizeAbove 64)
                           ]
@@ -163,21 +191,37 @@ spec = do
       obligationKinds "drep"
         `shouldMatchList` [ (".", NoBranchMatches [ShapeArray (Just 0), ShapeArray (Just 1), ShapeArray (Just 2), ShapeArray (Just 3)]),
                             (".", NoDiscriminantMatches [0, 1, 2, 3]),
+                            ("choice[0:array(0)].array[0]", AcceptWideHead),
+                            ("choice[0:array(0)].array[0]", AcceptWidestHead),
                             ("choice[0:array(0)]", AcceptDefinite),
                             ("choice[0:array(0)]", AcceptIndefinite),
+                            ("choice[0:array(0)]", AcceptWideHead),
+                            ("choice[0:array(0)]", AcceptWidestHead),
                             ("choice[0:array(0)]", TooFew 2),
                             ("choice[0:array(0)]", TooMany 2),
                             ("choice[0:array(0)].array[1]", WrongReference (Name "addr_keyhash")),
+                            ("choice[1:array(1)].array[0]", AcceptWideHead),
+                            ("choice[1:array(1)].array[0]", AcceptWidestHead),
                             ("choice[1:array(1)]", AcceptDefinite),
                             ("choice[1:array(1)]", AcceptIndefinite),
+                            ("choice[1:array(1)]", AcceptWideHead),
+                            ("choice[1:array(1)]", AcceptWidestHead),
                             ("choice[1:array(1)]", TooFew 2),
                             ("choice[1:array(1)]", TooMany 2),
                             ("choice[1:array(1)].array[1]", WrongReference (Name "script_hash")),
+                            ("choice[2:array(2)].array[0]", AcceptWideHead),
+                            ("choice[2:array(2)].array[0]", AcceptWidestHead),
                             ("choice[2:array(2)]", AcceptDefinite),
                             ("choice[2:array(2)]", AcceptIndefinite),
+                            ("choice[2:array(2)]", AcceptWideHead),
+                            ("choice[2:array(2)]", AcceptWidestHead),
                             ("choice[2:array(2)]", TooMany 1),
+                            ("choice[3:array(3)].array[0]", AcceptWideHead),
+                            ("choice[3:array(3)].array[0]", AcceptWidestHead),
                             ("choice[3:array(3)]", AcceptDefinite),
                             ("choice[3:array(3)]", AcceptIndefinite),
+                            ("choice[3:array(3)]", AcceptWideHead),
+                            ("choice[3:array(3)]", AcceptWidestHead),
                             ("choice[3:array(3)]", TooMany 1)
                           ]
 
@@ -197,7 +241,11 @@ spec = do
       -- the 6 belongs to no alternative. Only the two length forms and TooMany 1 remain.
       branchKinds "gov_action" "choice[6:array(6)]"
         `shouldMatchList` [ ("choice[6:array(6)]", AcceptDefinite),
+                            ("choice[6:array(6)].array[0]", AcceptWideHead),
+                            ("choice[6:array(6)].array[0]", AcceptWidestHead),
                             ("choice[6:array(6)]", AcceptIndefinite),
+                            ("choice[6:array(6)]", AcceptWideHead),
+                            ("choice[6:array(6)]", AcceptWidestHead),
                             ("choice[6:array(6)]", TooMany 1)
                           ]
 
@@ -207,7 +255,7 @@ spec = do
       -- A longer alternative keeps its lower bound: three entries where four are required still open with the
       -- discriminant, so such a sample can still be shown to belong here.
       [kind | ("choice[0:array(0)]", kind) <- branchKinds "gov_action" "choice[0:array(0)]"]
-        `shouldMatchList` [AcceptDefinite, AcceptIndefinite, TooFew 4, TooMany 4]
+        `shouldMatchList` [AcceptDefinite, AcceptIndefinite, AcceptWideHead, AcceptWidestHead, TooFew 4, TooMany 4]
 
     it "An alternative that is a span of numbers is told apart by where a value falls" $
       -- nonzero_int64 = negative_int64 / positive_int64. The choice refuses the numbers that no alternative admits:
@@ -217,9 +265,13 @@ spec = do
                             (".", BelowRange (-9223372036854775808)),
                             (".", AboveRange 9223372036854775807),
                             (".", InsideGap (-1) 1),
+                            ("choice[0:-9223372036854775808..-1]", AcceptWideHead),
+                            ("choice[0:-9223372036854775808..-1]", AcceptWidestHead),
                             ("choice[0:-9223372036854775808..-1]", AcceptBoundary (-9223372036854775808)),
                             ("choice[0:-9223372036854775808..-1]", AcceptBoundary (-1)),
                             ("choice[0:-9223372036854775808..-1]", InsideRange (-9223372036854775808) (-1)),
+                            ("choice[1:1..9223372036854775807]", AcceptWideHead),
+                            ("choice[1:1..9223372036854775807]", AcceptWidestHead),
                             ("choice[1:1..9223372036854775807]", AcceptBoundary 1),
                             ("choice[1:1..9223372036854775807]", AcceptBoundary 9223372036854775807),
                             ("choice[1:1..9223372036854775807]", InsideRange 1 9223372036854775807)
@@ -229,6 +281,8 @@ spec = do
       -- script_pubkey = (0, addr_keyhash)
       obligationKinds "script_pubkey"
         `shouldMatchList` [ ("group[0]", AcceptLiteral (LitUInt 0)),
+                            ("group[0]", AcceptWideHead),
+                            ("group[0]", AcceptWidestHead),
                             ("group[0]", WrongLiteral (LitUInt 0)),
                             ("group[1]", WrongReference (Name "addr_keyhash"))
                           ]
@@ -246,6 +300,8 @@ spec = do
       -- The last 2 constraints apply to 2 different types and we should have obligations for both.
       obligationKinds "metadatum"
         `shouldMatchList` [ (".", NoBranchMatches [ShapeMap, ShapeArray Nothing, ShapePrimitive PrimInt, ShapePrimitive PrimBytes, ShapePrimitive PrimText]),
+                            ("choice[0:map]", AcceptWideHead),
+                            ("choice[0:map]", AcceptWidestHead),
                             ("choice[0:map]", AcceptDefinite),
                             ("choice[0:map]", AcceptIndefinite),
                             ("choice[0:map]", AcceptArity 2),
@@ -256,14 +312,22 @@ spec = do
                             ("choice[0:map].map[0].repeat0.value", WrongReference (Name "metadatum")),
                             ("choice[1:array]", AcceptDefinite),
                             ("choice[1:array]", AcceptIndefinite),
+                            ("choice[1:array]", AcceptWideHead),
+                            ("choice[1:array]", AcceptWidestHead),
                             ("choice[1:array]", AcceptArity 2),
                             ("choice[1:array].array[0].repeat0", WrongReference (Name "metadatum")),
+                            ("choice[2:int]", AcceptWideHead),
+                            ("choice[2:int]", AcceptWidestHead),
                             ("choice[2:int]", AcceptType PrimInt),
                             ("choice[2:int]", AcceptBoundary (-18446744073709551616)),
                             ("choice[2:int]", AcceptBoundary 18446744073709551615),
+                            ("choice[3:bytes].control", AcceptWideHead),
+                            ("choice[3:bytes].control", AcceptWidestHead),
                             ("choice[3:bytes].control", AcceptSize 0 64),
                             ("choice[3:bytes].control", ViolateSizeAbove 64),
                             ("choice[3:bytes].control", AcceptType PrimBytes),
+                            ("choice[4:text].control", AcceptWideHead),
+                            ("choice[4:text].control", AcceptWidestHead),
                             ("choice[4:text].control", AcceptSize 0 64),
                             ("choice[4:text].control", ViolateSizeAbove 64),
                             ("choice[4:text].control", AcceptType PrimText)
@@ -298,6 +362,8 @@ spec = do
                             (".", WrongCombination [ShapePrimitive PrimNil, ShapePrimitive PrimNil]),
                             ("choice[0:ambiguous-array]", AcceptDefinite),
                             ("choice[0:ambiguous-array]", AcceptIndefinite),
+                            ("choice[0:ambiguous-array]", AcceptWideHead),
+                            ("choice[0:ambiguous-array]", AcceptWidestHead),
                             ("choice[0:ambiguous-array]", TooFew 2),
                             ("choice[0:ambiguous-array]", TooMany 2),
                             ("choice[0:ambiguous-array].array[1].value", NoBranchMatches [ShapePrimitive PrimUInt, ShapePrimitive PrimNil]),
@@ -305,6 +371,8 @@ spec = do
                             ("choice[0:ambiguous-array].array[1].value.choice[1:nil]", AcceptType PrimNil),
                             ("choice[1:ambiguous-array]", AcceptDefinite),
                             ("choice[1:ambiguous-array]", AcceptIndefinite),
+                            ("choice[1:ambiguous-array]", AcceptWideHead),
+                            ("choice[1:ambiguous-array]", AcceptWidestHead),
                             ("choice[1:ambiguous-array]", TooFew 2),
                             ("choice[1:ambiguous-array]", TooMany 2),
                             ("choice[1:ambiguous-array].array[0].value", NoBranchMatches [ShapePrimitive PrimUInt, ShapePrimitive PrimNil]),
@@ -333,13 +401,21 @@ spec = do
       obligationKinds "datum_option"
         `shouldMatchList` [ (".", NoBranchMatches [ShapeArray (Just 0), ShapeArray (Just 1)]),
                             (".", NoDiscriminantMatches [0, 1]),
+                            ("choice[0:array(0)].array[0]", AcceptWideHead),
+                            ("choice[0:array(0)].array[0]", AcceptWidestHead),
                             ("choice[0:array(0)]", AcceptDefinite),
                             ("choice[0:array(0)]", AcceptIndefinite),
+                            ("choice[0:array(0)]", AcceptWideHead),
+                            ("choice[0:array(0)]", AcceptWidestHead),
                             ("choice[0:array(0)]", TooFew 2),
                             ("choice[0:array(0)]", TooMany 2),
                             ("choice[0:array(0)].array[1]", WrongReference (Name "hash32")),
+                            ("choice[1:array(1)].array[0]", AcceptWideHead),
+                            ("choice[1:array(1)].array[0]", AcceptWidestHead),
                             ("choice[1:array(1)]", AcceptDefinite),
                             ("choice[1:array(1)]", AcceptIndefinite),
+                            ("choice[1:array(1)]", AcceptWideHead),
+                            ("choice[1:array(1)]", AcceptWidestHead),
                             ("choice[1:array(1)]", TooFew 2),
                             ("choice[1:array(1)]", TooMany 2),
                             ("choice[1:array(1)].array[1]", WrongReference (Name "data"))
@@ -355,7 +431,7 @@ spec = do
         | (path, _) <- dijkstraObligationKinds "certificate",
           Just rest <- [T.stripPrefix "choice[1:array(3)].array[" path]
         ]
-        `shouldBe` ["1", "2", "3/11", "4/11", "5/11", "6/11", "7/11", "8/11", "9/11", "10/11"]
+        `shouldBe` ["0", "1", "2", "3/11", "4/11", "5/11", "6/11", "7/11", "8/11", "9/11", "10/11"]
 
     it "We check both the arity and the definiteness vs indefiniteness of the encoding" $
       -- vkeywitness = [vkey, signature]
@@ -363,6 +439,8 @@ spec = do
         `shouldMatchList` [ (".", WrongType PrimArray),
                             (".", AcceptDefinite),
                             (".", AcceptIndefinite),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", TooFew 2),
                             (".", TooMany 2),
                             ("array[0]", WrongReference (Name "vkey")),
@@ -375,6 +453,8 @@ spec = do
         `shouldMatchList` [ (".", WrongType PrimArray),
                             (".", AcceptDefinite),
                             (".", AcceptIndefinite),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", AcceptArity 2),
                             (".", AcceptArity 3),
                             (".", TooFew 2),
@@ -392,9 +472,13 @@ spec = do
         `shouldMatchList` [ (".", WrongType PrimArray),
                             (".", AcceptDefinite),
                             (".", AcceptIndefinite),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", TooFew 2),
                             (".", TooMany 2),
                             ("array[0].value", WrongReference (Name "transaction_id")),
+                            ("array[1].value.control", AcceptWideHead),
+                            ("array[1].value.control", AcceptWidestHead),
                             ("array[1].value.control", AcceptBoundary 65535),
                             ("array[1].value.control", ViolateHighBound 65535),
                             ("array[1].value.control", AcceptType PrimUInt),
@@ -406,6 +490,8 @@ spec = do
       -- withdrawals = {+ reward_account => coin}
       obligationKinds "withdrawals"
         `shouldMatchList` [ (".", WrongType PrimMap),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", AcceptDefinite),
                             (".", AcceptIndefinite),
                             (".", TooFew 1),
@@ -420,6 +506,8 @@ spec = do
       --   {? 0 : [* int64], ? 1 : [* int64], ? 2 : [* int64], * 3 .. 255 => [* int64]}
       obligationKinds "cost_models"
         `shouldMatchList` [ (".", WrongType PrimMap),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", AcceptDefinite),
                             (".", AcceptIndefinite),
                             (".", AcceptArity 5),
@@ -427,7 +515,11 @@ spec = do
                             ("map{0}.occur0.value", WrongType PrimArray),
                             ("map{0}.occur0.value", AcceptDefinite),
                             ("map{0}.occur0.value", AcceptIndefinite),
+                            ("map{0}.occur0.value", AcceptWideHead),
+                            ("map{0}.occur0.value", AcceptWidestHead),
                             ("map{0}.occur0.value", AcceptArity 2),
+                            ("map{0}.occur0.value.array[0].repeat0", AcceptWideHead),
+                            ("map{0}.occur0.value.array[0].repeat0", AcceptWidestHead),
                             ("map{0}.occur0.value.array[0].repeat0", AcceptBoundary (-9223372036854775808)),
                             ("map{0}.occur0.value.array[0].repeat0", AcceptBoundary 9223372036854775807),
                             ("map{0}.occur0.value.array[0].repeat0", InsideRange (-9223372036854775808) 9223372036854775807),
@@ -437,7 +529,11 @@ spec = do
                             ("map{1}.occur0.value", WrongType PrimArray),
                             ("map{1}.occur0.value", AcceptDefinite),
                             ("map{1}.occur0.value", AcceptIndefinite),
+                            ("map{1}.occur0.value", AcceptWideHead),
+                            ("map{1}.occur0.value", AcceptWidestHead),
                             ("map{1}.occur0.value", AcceptArity 2),
+                            ("map{1}.occur0.value.array[0].repeat0", AcceptWideHead),
+                            ("map{1}.occur0.value.array[0].repeat0", AcceptWidestHead),
                             ("map{1}.occur0.value.array[0].repeat0", AcceptBoundary (-9223372036854775808)),
                             ("map{1}.occur0.value.array[0].repeat0", AcceptBoundary 9223372036854775807),
                             ("map{1}.occur0.value.array[0].repeat0", InsideRange (-9223372036854775808) 9223372036854775807),
@@ -447,7 +543,11 @@ spec = do
                             ("map{2}.occur0.value", WrongType PrimArray),
                             ("map{2}.occur0.value", AcceptDefinite),
                             ("map{2}.occur0.value", AcceptIndefinite),
+                            ("map{2}.occur0.value", AcceptWideHead),
+                            ("map{2}.occur0.value", AcceptWidestHead),
                             ("map{2}.occur0.value", AcceptArity 2),
+                            ("map{2}.occur0.value.array[0].repeat0", AcceptWideHead),
+                            ("map{2}.occur0.value.array[0].repeat0", AcceptWidestHead),
                             ("map{2}.occur0.value.array[0].repeat0", AcceptBoundary (-9223372036854775808)),
                             ("map{2}.occur0.value.array[0].repeat0", AcceptBoundary 9223372036854775807),
                             ("map{2}.occur0.value.array[0].repeat0", InsideRange (-9223372036854775808) 9223372036854775807),
@@ -456,6 +556,8 @@ spec = do
                             ("map{2}.occur0.value.array[0].repeat0", WrongType PrimInt),
                             -- The keys 0, 1 and 2 belong to the siblings, but a negative key is under 3 too, and no
                             -- sibling claims it.
+                            ("map[3?0,1,2].repeat0.key", AcceptWideHead),
+                            ("map[3?0,1,2].repeat0.key", AcceptWidestHead),
                             ("map[3?0,1,2].repeat0.key", AcceptBoundary 3),
                             ("map[3?0,1,2].repeat0.key", AcceptBoundary 255),
                             ("map[3?0,1,2].repeat0.key", InsideRange 3 255),
@@ -465,7 +567,11 @@ spec = do
                             ("map[3?0,1,2].repeat0.value", WrongType PrimArray),
                             ("map[3?0,1,2].repeat0.value", AcceptDefinite),
                             ("map[3?0,1,2].repeat0.value", AcceptIndefinite),
+                            ("map[3?0,1,2].repeat0.value", AcceptWideHead),
+                            ("map[3?0,1,2].repeat0.value", AcceptWidestHead),
                             ("map[3?0,1,2].repeat0.value", AcceptArity 2),
+                            ("map[3?0,1,2].repeat0.value.array[0].repeat0", AcceptWideHead),
+                            ("map[3?0,1,2].repeat0.value.array[0].repeat0", AcceptWidestHead),
                             ("map[3?0,1,2].repeat0.value.array[0].repeat0", AcceptBoundary (-9223372036854775808)),
                             ("map[3?0,1,2].repeat0.value.array[0].repeat0", AcceptBoundary 9223372036854775807),
                             ("map[3?0,1,2].repeat0.value.array[0].repeat0", InsideRange (-9223372036854775808) 9223372036854775807),
@@ -484,6 +590,8 @@ spec = do
         --   }
         obligationKinds "babbage_transaction_output"
         `shouldMatchList` [ (".", WrongType PrimMap),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", AcceptDefinite),
                             (".", AcceptIndefinite),
                             -- Two keys required and two optional, so the length is a range: 2 to 4.
@@ -504,6 +612,8 @@ spec = do
                             ("map{1}.value", WrongReference (Name "value")),
                             ("map{2}.occur0.value", AcceptReference (Name "datum_option")),
                             ("map{2}.occur0.value", WrongReference (Name "datum_option")),
+                            ("map{3}.occur0.value", AcceptWideHead),
+                            ("map{3}.occur0.value", AcceptWidestHead),
                             ("map{3}.occur0.value", AcceptReference (Name "script_ref")),
                             ("map{3}.occur0.value", WrongReference (Name "script_ref")),
                             -- script_ref has no corpus of its own, so its obligations are stated here too, where a
@@ -511,6 +621,8 @@ spec = do
                             ("map{3}.occur0.value", AcceptTag 24),
                             ("map{3}.occur0.value", WrongTag 24),
                             ("map{3}.occur0.value", MissingTag 24),
+                            ("map{3}.occur0.value.tag24.control", AcceptWideHead),
+                            ("map{3}.occur0.value.tag24.control", AcceptWidestHead),
                             ("map{3}.occur0.value.tag24.control", AcceptCbor),
                             ("map{3}.occur0.value.tag24.control", ViolateCbor),
                             ("map{3}.occur0.value.tag24.control", WrongEmbedded (Name "script")),
@@ -526,12 +638,16 @@ spec = do
       -- Then we create obligations only for the first entry of the outer map.
       obligationKinds "mint"
         `shouldMatchList` [ (".", WrongType PrimMap),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", AcceptDefinite),
                             (".", AcceptIndefinite),
                             (".", TooFew 1),
                             (".", AcceptArity 2),
                             (".", DuplicateKey),
                             ("map[0].repeat1.key", WrongReference (Name "policy_id")),
+                            ("map[0].repeat1.value", AcceptWideHead),
+                            ("map[0].repeat1.value", AcceptWidestHead),
                             ("map[0].repeat1.value", WrongType PrimMap),
                             ("map[0].repeat1.value", AcceptDefinite),
                             ("map[0].repeat1.value", AcceptIndefinite),
@@ -572,6 +688,8 @@ spec = do
       -- Fields holding sets are folded in and obligations generated from the result.
       [entry | entry@(path, _) <- obligationKinds "transaction_body", not (T.isInfixOf "validator" path)]
         `shouldMatchList` [ (".", WrongType PrimMap),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", AcceptDefinite),
                             (".", AcceptIndefinite),
                             (".", TooFew 3),
@@ -589,6 +707,8 @@ spec = do
                             ("map{1}.value", WrongType PrimArray),
                             ("map{1}.value", AcceptDefinite),
                             ("map{1}.value", AcceptIndefinite),
+                            ("map{1}.value", AcceptWideHead),
+                            ("map{1}.value", AcceptWidestHead),
                             ("map{1}.value", AcceptArity 2),
                             ("map{1}.value.array[0].repeat0", WrongReference (Name "transaction_output")),
                             ("map{2}.value", WrongReference (Name "coin")),
@@ -726,9 +846,13 @@ spec = do
                             -- Each half is folded in, so its span is stated on the branch that carries it. Neither half
                             -- denies a value outside its own span: that is how the branch was picked, and what no
                             -- branch admits is stated once above.
+                            ("choice[0:-9223372036854775808..-1]", AcceptWideHead),
+                            ("choice[0:-9223372036854775808..-1]", AcceptWidestHead),
                             ("choice[0:-9223372036854775808..-1]", AcceptBoundary (-9223372036854775808)),
                             ("choice[0:-9223372036854775808..-1]", AcceptBoundary (-1)),
                             ("choice[0:-9223372036854775808..-1]", InsideRange (-9223372036854775808) (-1)),
+                            ("choice[1:1..9223372036854775807]", AcceptWideHead),
+                            ("choice[1:1..9223372036854775807]", AcceptWidestHead),
                             ("choice[1:1..9223372036854775807]", AcceptBoundary 1),
                             ("choice[1:1..9223372036854775807]", AcceptBoundary 9223372036854775807),
                             ("choice[1:1..9223372036854775807]", InsideRange 1 9223372036854775807)
@@ -740,6 +864,8 @@ spec = do
       -- No type decodes a bare redeemer so we create obligations where that reference is used
       [entry | entry@("array[0].value", _) <- obligationKinds "redeemer"]
         `shouldMatchList` [ ("array[0].value", WrongReference (Name "redeemer_tag")),
+                            ("array[0].value", AcceptWideHead),
+                            ("array[0].value", AcceptWidestHead),
                             ("array[0].value", AcceptBoundary 0),
                             ("array[0].value", AcceptBoundary 5),
                             ("array[0].value", InsideRange 0 5),
@@ -777,16 +903,22 @@ spec = do
         `shouldMatchList` [ (".", AcceptPresent),
                             (".", NoBranchMatches [ShapeTag 258, ShapeArray Nothing]),
                             (".", NoTagMatches [258]),
+                            ("choice[0:tag258]", AcceptWideHead),
+                            ("choice[0:tag258]", AcceptWidestHead),
                             ("choice[0:tag258].tag258", WrongType PrimArray),
                             ("choice[0:tag258].tag258", TooFew 1),
                             ("choice[0:tag258].tag258", AcceptArity 2),
                             ("choice[0:tag258].tag258", AcceptDefinite),
                             ("choice[0:tag258].tag258", AcceptIndefinite),
+                            ("choice[0:tag258].tag258", AcceptWideHead),
+                            ("choice[0:tag258].tag258", AcceptWidestHead),
                             ("choice[0:tag258].tag258.array[0].repeat1", WrongReference (Name "vkeywitness")),
                             ("choice[1:array]", TooFew 1),
                             ("choice[1:array]", AcceptArity 2),
                             ("choice[1:array]", AcceptDefinite),
                             ("choice[1:array]", AcceptIndefinite),
+                            ("choice[1:array]", AcceptWideHead),
+                            ("choice[1:array]", AcceptWidestHead),
                             ("choice[1:array].array[0].repeat1", WrongReference (Name "vkeywitness"))
                           ]
 
@@ -797,16 +929,22 @@ spec = do
                             (".", ValidatorFails),
                             ("validator.gen", NoBranchMatches [ShapeTag 258, ShapeArray Nothing]),
                             ("validator.gen", NoTagMatches [258]),
+                            ("validator.gen.choice[0:tag258]", AcceptWideHead),
+                            ("validator.gen.choice[0:tag258]", AcceptWidestHead),
                             ("validator.gen.choice[0:tag258].tag258", WrongType PrimArray),
                             ("validator.gen.choice[0:tag258].tag258", TooFew 1),
                             ("validator.gen.choice[0:tag258].tag258", AcceptArity 2),
                             ("validator.gen.choice[0:tag258].tag258", AcceptDefinite),
                             ("validator.gen.choice[0:tag258].tag258", AcceptIndefinite),
+                            ("validator.gen.choice[0:tag258].tag258", AcceptWideHead),
+                            ("validator.gen.choice[0:tag258].tag258", AcceptWidestHead),
                             ("validator.gen.choice[0:tag258].tag258.array[0].repeat1", WrongReference (Name "plutus_v1_script")),
                             ("validator.gen.choice[1:array]", TooFew 1),
                             ("validator.gen.choice[1:array]", AcceptArity 2),
                             ("validator.gen.choice[1:array]", AcceptDefinite),
                             ("validator.gen.choice[1:array]", AcceptIndefinite),
+                            ("validator.gen.choice[1:array]", AcceptWideHead),
+                            ("validator.gen.choice[1:array]", AcceptWidestHead),
                             ("validator.gen.choice[1:array].array[0].repeat1", WrongReference (Name "plutus_v1_script"))
                           ]
 
@@ -815,6 +953,8 @@ spec = do
       -- vrf_vkey = bytes .size 32
       obligationKinds "vrf_vkey"
         `shouldMatchList` [ ("control", AcceptSize 32 32),
+                            ("control", AcceptWideHead),
+                            ("control", AcceptWidestHead),
                             ("control", ViolateSizeBelow 32),
                             ("control", ViolateSizeAbove 32),
                             ("control", AcceptType PrimBytes),
@@ -825,6 +965,8 @@ spec = do
       -- url = text .size (0 .. 128)
       obligationKinds "url"
         `shouldMatchList` [ ("control", AcceptSize 0 128),
+                            ("control", AcceptWideHead),
+                            ("control", AcceptWidestHead),
                             ("control", ViolateSizeAbove 128),
                             ("control", AcceptType PrimText),
                             ("control", WrongType PrimText)
@@ -836,6 +978,8 @@ spec = do
       -- the conversion is visible: port below says the same thing as `.le 65535` and would otherwise read identically.
       obligationKinds "epoch_interval"
         `shouldMatchList` [ ("control", AcceptBoundary 4294967295),
+                            ("control", AcceptWideHead),
+                            ("control", AcceptWidestHead),
                             ("control", ViolateHighBound 4294967295),
                             ("control", AcceptType PrimUInt),
                             ("control", WrongType PrimUInt)
@@ -847,6 +991,8 @@ spec = do
       -- specification author wrote.
       obligationKinds "port"
         `shouldMatchList` [ ("control", AcceptBoundary 65535),
+                            ("control", AcceptWideHead),
+                            ("control", AcceptWidestHead),
                             ("control", ViolateHighBound 65535),
                             ("control", AcceptType PrimUInt),
                             ("control", WrongType PrimUInt)
@@ -857,8 +1003,12 @@ spec = do
       -- checked.
       obligationKinds "script_ref"
         `shouldMatchList` [ (".", AcceptTag 24),
+                            (".", AcceptWideHead),
+                            (".", AcceptWidestHead),
                             (".", WrongTag 24),
                             (".", MissingTag 24),
+                            ("tag24.control", AcceptWideHead),
+                            ("tag24.control", AcceptWidestHead),
                             ("tag24.control", AcceptCbor),
                             ("tag24.control", ViolateCbor),
                             ("tag24.control", WrongEmbedded (Name "script")),
@@ -879,13 +1029,19 @@ spec = do
                             (".", ValidatorFails),
                             ("validator.gen", NoBranchMatches [ShapeTag 258, ShapeArray Nothing]),
                             ("validator.gen", NoTagMatches [258]),
+                            ("validator.gen.choice[0:tag258]", AcceptWideHead),
+                            ("validator.gen.choice[0:tag258]", AcceptWidestHead),
                             ("validator.gen.choice[0:tag258].tag258", WrongType PrimArray),
                             ("validator.gen.choice[0:tag258].tag258", AcceptDefinite),
                             ("validator.gen.choice[0:tag258].tag258", AcceptIndefinite),
+                            ("validator.gen.choice[0:tag258].tag258", AcceptWideHead),
+                            ("validator.gen.choice[0:tag258].tag258", AcceptWidestHead),
                             ("validator.gen.choice[0:tag258].tag258", AcceptArity 2),
                             ("validator.gen.choice[0:tag258].tag258.array[0].repeat0", WrongReference (Name "transaction_input")),
                             ("validator.gen.choice[1:array]", AcceptDefinite),
                             ("validator.gen.choice[1:array]", AcceptIndefinite),
+                            ("validator.gen.choice[1:array]", AcceptWideHead),
+                            ("validator.gen.choice[1:array]", AcceptWidestHead),
                             ("validator.gen.choice[1:array]", AcceptArity 2),
                             ("validator.gen.choice[1:array].array[0].repeat0", WrongReference (Name "transaction_input"))
                           ]
@@ -894,14 +1050,20 @@ spec = do
       obligationKinds "%nonempty_list<vkeywitness>"
         `shouldMatchList` [ (".", NoBranchMatches [ShapeTag 258, ShapeArray Nothing]),
                             (".", NoTagMatches [258]),
+                            ("choice[0:tag258]", AcceptWideHead),
+                            ("choice[0:tag258]", AcceptWidestHead),
                             ("choice[0:tag258].tag258", WrongType PrimArray),
                             ("choice[0:tag258].tag258", AcceptDefinite),
                             ("choice[0:tag258].tag258", AcceptIndefinite),
+                            ("choice[0:tag258].tag258", AcceptWideHead),
+                            ("choice[0:tag258].tag258", AcceptWidestHead),
                             ("choice[0:tag258].tag258", TooFew 1),
                             ("choice[0:tag258].tag258", AcceptArity 2),
                             ("choice[0:tag258].tag258.array[0].repeat1", WrongReference (Name "vkeywitness")),
                             ("choice[1:array]", AcceptDefinite),
                             ("choice[1:array]", AcceptIndefinite),
+                            ("choice[1:array]", AcceptWideHead),
+                            ("choice[1:array]", AcceptWidestHead),
                             ("choice[1:array]", TooFew 1),
                             ("choice[1:array]", AcceptArity 2),
                             ("choice[1:array].array[0].repeat1", WrongReference (Name "vkeywitness"))

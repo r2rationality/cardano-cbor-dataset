@@ -62,7 +62,7 @@ assessCoverage checker rule obligations divergences samples =
       _ -> False
     -- The derivation states what the specification refuses, validators included, so a sample that meets no obligation
     -- to reject is one that the specification accepts.
-    meetsAll sample = meetsObligations checker rule (sampleTerm sample)
+    meetsAll sample = meetsObligations checker rule (sampleCbor sample)
 
 -- | Classify an obligation as fulfilled, outstanding, waived, or untested, given the other obligations of its rule,
 -- the samples and the waivers.
@@ -73,7 +73,7 @@ classify checker obligations divergences allSamples obligation =
     Nothing -> Sampled (foundIn answers)
   where
     answers =
-      [ (sampleKey sample, answerFor checker obligations obligation (sampleTerm sample))
+      [ (sampleKey sample, answerFor checker obligations obligation (sampleCbor sample))
       | sample <- candidates allSamples obligation
       ]
 

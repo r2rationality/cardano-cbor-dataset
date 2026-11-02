@@ -141,7 +141,7 @@ validSample = manualSample ManualValid
 
 manualSample :: SampleType -> Name -> Text -> [Word8] -> Sample
 manualSample kind rule name bytes =
-  Sample (SampleKey rule (SampleName kind name)) (either error id (decodeCbor (BS.pack bytes)))
+  either error id (readSample (SampleKey rule (SampleName kind name)) (BS.pack bytes))
 
 -- | The two lower bounds of @redeemers@, with their status, keyed by where the bound is stated.
 statuses :: [Sample] -> [(Text, Text)]

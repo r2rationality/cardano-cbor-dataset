@@ -77,17 +77,17 @@ Each row below specifies one possible aspect of a rule. The sections are in the 
 
 | Section        | Construct                              | Obligations stated                                                                                                                                                                                                                                             |
 | -------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Literals    | Literal                                | `AcceptLiteral v`, `WrongLiteral v`                                                                                                                                                                                                                            |
-|                | Primitive (`uint`, `bytes`, `text`, …) | `AcceptType p`, `WrongType p`, and `AcceptBoundary` at each end of the type's range when nothing else bounds it                                                                                                                                                |
-| 2. Ranges      | Range `a .. b`                         | `AcceptBoundary a`, `AcceptBoundary b`, `InsideRange`, `BelowRange`, `AboveRange`, `WrongType int`                                                                                                                                                             |
-| 3. Tags        | Tag `#6.n(x)`                          | `AcceptTag n`, `WrongTag n`, `MissingTag n` (except for bignums), and the payload walked, or only its length when CBOR fixes its type (bignums)                                                                                                                |
+| 1. Literals    | Literal                                | `AcceptLiteral v`, `WrongLiteral v`, and `AcceptWideHead`, `AcceptWidestHead` for an integer, text or bytes literal                                                                                                                                            |
+|                | Primitive (`uint`, `bytes`, `text`, …) | `AcceptType p`, `WrongType p`, and `AcceptBoundary` at each end of the type's range when nothing else bounds it, and `AcceptWideHead`, `AcceptWidestHead` for integers, bytes and text                                                                         |
+| 2. Ranges      | Range `a .. b`                         | `AcceptBoundary a`, `AcceptBoundary b`, `InsideRange`, `BelowRange`, `AboveRange`, `WrongType int`, `AcceptWideHead`, `AcceptWidestHead`                                                                                                                       |
+| 3. Tags        | Tag `#6.n(x)`                          | `AcceptTag n`, `WrongTag n`, `AcceptWideHead`, `AcceptWidestHead`, `MissingTag n` (except for bignums), and the payload walked, or only its length when CBOR fixes its type (bignums)                                                                          |
 | 4. Choices     | Choice `a / b`                         | `NoBranchMatches`, `NoTagMatches`, `NoDiscriminantMatches`, `NoReferenceMatches`, per branch `AcceptBranch` plus that branch's own obligations, and for number alternatives `BelowRange`, `AboveRange`, `InsideGap` for the numbers that no alternative admits |
 |                | Overlapping array alternatives         | `AcceptElements`, `NoElementsMatch`, `WrongCombination`                                                                                                                                                                                                        |
-| 5. Arrays      | Array `[...]`                          | `WrongType array`, `AcceptDefinite`, `AcceptIndefinite`, plus the length rows below                                                                                                                                                                            |
+| 5. Arrays      | Array `[...]`                          | `WrongType array`, `AcceptDefinite`, `AcceptIndefinite`, `AcceptWideHead`, `AcceptWidestHead`, plus the length rows below                                                                                                                                      |
 |                | Container length                       | one `AcceptArity n` per permitted length, `TooFew low`, `TooMany high`, for arrays and maps                                                                                                                                                                    |
 |                | Open entry (`*`, `+`)                  | one `AcceptArity`, at one more than the width with each open entry taken once, for arrays and maps                                                                                                                                                             |
 |                | Optional entry (`?`)                   | `AcceptPresent`, or `AcceptReference r` when the entry names a rule, for arrays and maps                                                                                                                                                                       |
-| 6. Maps        | Map `{...}`                            | `WrongType map`, `AcceptDefinite`, `AcceptIndefinite`, `DuplicateKey`, the length rows of arrays, and `NoKeyMatches` when every entry has a literal key                                                                                                        |
+| 6. Maps        | Map `{...}`                            | `WrongType map`, `AcceptDefinite`, `AcceptIndefinite`, `AcceptWideHead`, `AcceptWidestHead`, `DuplicateKey`, the length rows of arrays, and `NoKeyMatches` when every entry has a literal key                                                                  |
 |                | Required map entry                     | `AcceptRequiredKey k`, `MissingRequiredKey k`                                                                                                                                                                                                                  |
 | 7. Groups      | Group `(...)`                          | nothing of its own: its entries are spliced into the container that holds it, see [References to other rules](#references-to-other-rules)                                                                                                                      |
 | 8. References  | Reference to a rule                    | `AcceptReference r`, `WrongReference r`, unless the rule is folded or inlined, see [References to other rules](#references-to-other-rules)                                                                                                                     |
@@ -119,6 +119,8 @@ An **Accept** obligation is answered by a sample that must decode, a **Reject** 
 | `AcceptSize lo hi`         | Accept   | A value whose length a `.size` control admits                                                           | `url`                      |
 | `AcceptTag n`              | Accept   | The tag specified by the rule                                                                           | `big_uint`                 |
 | `AcceptType p`             | Accept   | A value of the primitive type the specification names                                                   | `big_int`                  |
+| `AcceptWideHead`           | Accept   | The value with a head wider than it needs: `98 02` for an array of two, `18 01` for 1                   | `ex_units`                 |
+| `AcceptWidestHead`         | Accept   | The value with an 8-byte head: `9b 00 00 00 00 00 00 00 02` for an array of two                         | `ex_units`                 |
 | `BelowRange lo`            | Reject   | A value below the lower end                                                                             | `vote`                     |
 | `DuplicateKey`             | Reject   | A map carrying the same key twice                                                                       | `withdrawals`              |
 | `InsideGap lo hi`          | Reject   | A value strictly between two alternatives that are numbers, which no alternative admits                 | `nonzero_int64`            |
@@ -164,6 +166,18 @@ Some obligations are *not* generated:
 
  - For the same reason `InsideRange` is stated only where the range has an interior, since otherwise the endpoints already answer it.
    E.g. `"redeemer"`, whose `redeemer_tag` span of `0 .. 5` has one.
+
+ - `AcceptWideHead` asks for a head that spells its number in more bytes than needed. A decoded term does not keep that, so
+   samples are read with `Coverage.Obligations.Cbor`, which does. `generate-cbor` writes minimal heads only, so a
+   `manual-valid` sample fulfils each of these rows. An integer of 2^32 or more has no wider head: a row at an integer
+   needs a small value. A tag head can be wide too, except the bignum tags 2 and 3: plutus-core reads
+   a bignum only from the minimal bytes `c2` and `c3`, so the node refuses a wide spelling and `big_int` declares that as an
+   `unstated-constraint` divergence.
+
+ - `AcceptWidestHead` asks for the 8-byte head, a case of its own: cborg reports it as another token type
+   (`TypeMapLen64`, `TypeListLen64`, `TypeUInt64`, `TypeTag64`), so a decoder that looks at the token type can refuse it
+   where it accepts every other spelling. The Haskell node does that for a map in `babbage_transaction_output` and
+   `redeemers`, and `unstated-constraint` divergences with a `manual-invalid` sample record it.
 
  - A **range admits integers only**, so it also states `WrongType int`: a value such as `null` is refused wherever the
    range is read. E.g. `"cost_models"`, whose costs are `int64`. A range that is an alternative of a choice does not
@@ -239,12 +253,12 @@ tag24.control  AcceptType bytes / WrongType bytes  the payload must be a byte st
 
 Each obligation is evaluated against the corpus samples for the obligation rule. The evaluation raises four verdicts:
 
-| Verdict         | Meaning                                                                                                  |
-| --------------- | -------------------------------------------------------------------------------------------------------- |
-| **Fulfilled**   | A sample of the right category shows what the obligation asks for. This sample is the witness            |
-| **Outstanding** | No sample fulfills the obligation. We either need to generate more samples or add manual ones            |
+| Verdict         | Meaning                                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Fulfilled**   | A sample of the right category shows what the obligation asks for. This sample is the witness                     |
+| **Outstanding** | No sample fulfills the obligation. We either need to generate more samples or add manual ones                     |
 | **Waived**      | A divergence in `corpus.json` lifts the obligation, because the Haskell node and the specification disagree on it |
-| **Untested**    | The obligation could not even be properly tested.                                                        |
+| **Untested**    | The obligation could not even be properly tested.                                                                 |
 
 An **Untested** verdict carries why the obligation could not be tested:
 

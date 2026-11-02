@@ -117,3 +117,14 @@ uintValue :: LiteralValue -> Maybe Integer
 uintValue = \case
   LitUInt number -> Just (toInteger number)
   _ -> Nothing
+
+-- | Whether a literal opens with a head that carries a number: an integer its value, a string its length.
+literalHasHead :: LiteralValue -> Bool
+literalHasHead = \case
+  LitUInt _ -> True
+  LitNInt _ -> True
+  LitText _ -> True
+  LitBytes _ -> True
+  LitBignum _ -> False
+  LitBool _ -> False
+  LitFloat _ -> False

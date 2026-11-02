@@ -75,6 +75,10 @@ data ObligationKind
     AcceptTag Word64
   | -- | The primitive type the specification names.
     AcceptType Primitive
+  | -- | This value must appear with a head wider than it needs (see [Coverage.Obligations.Cbor])
+    AcceptWideHead
+  | -- | This value must appear with the 8-byte head, for a number that fits in fewer bytes (see [Coverage.Obligations.Cbor])
+    AcceptWidestHead
   | -- | A value below the lower bound of the range.
     BelowRange Integer
   | -- | A map carrying the same key twice, which has to be refused.
@@ -165,6 +169,8 @@ categoryFor = \case
   AcceptSize _ _ -> Accept
   AcceptTag _ -> Accept
   AcceptType _ -> Accept
+  AcceptWideHead -> Accept
+  AcceptWidestHead -> Accept
   BelowRange _ -> Reject
   MissingTag _ -> Reject
   DuplicateKey -> Reject
@@ -335,6 +341,8 @@ renderKind = describe
       MissingTag number -> "a value without the tag " <> show number
       AcceptDefinite -> "this container in definite form"
       AcceptIndefinite -> "this container in indefinite form"
+      AcceptWideHead -> "this value with a head wider than it needs"
+      AcceptWidestHead -> "this value with an 8-byte head"
       ValidatorSucceeds -> "a custom validator succeeds"
       ValidatorFails -> "a custom validator fails"
 

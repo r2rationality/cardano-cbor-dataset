@@ -2,6 +2,7 @@ module Main (main) where
 
 import Base.Extra
 import Control.Concurrent.Async (forConcurrently)
+import Coverage.Obligations.Cbor (toTerm)
 import Coverage.Obligations.Divergence (divergentSamples)
 import Coverage.Obligations.SpecRule (HuddleSpec, eraRoot, isCddlValid)
 import Coverage.Report.Samples
@@ -49,8 +50,8 @@ checkSample checker specification divergent sample
   where
     key = sampleKey sample
     rule = sampleKeyRule key
-    term = sampleTerm sample
-    isCddlOk = isCddlValid specification rule term
-    areObligationsMet = meetsObligations checker rule term
+    value = sampleCbor sample
+    isCddlOk = isCddlValid specification rule (toTerm value)
+    areObligationsMet = meetsObligations checker rule value
     -- The obligations can be stricter than cddl (repeated keys for example), when the node also refuses the sample
     explained = isRejected sample || Set.member key divergent

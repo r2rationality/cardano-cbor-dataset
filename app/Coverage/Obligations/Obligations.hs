@@ -57,6 +57,8 @@ arrayObligations rules path entries =
     <> containerLength rules path entries
     <> at AcceptDefinite
     <> at AcceptIndefinite
+    <> at AcceptWideHead
+    <> at AcceptWidestHead
   where
     at = pure ... obligationAt path
 
@@ -77,6 +79,8 @@ mapObligations rules path entries =
     <> containerLength rules path entries
     <> at AcceptDefinite
     <> at AcceptIndefinite
+    <> at AcceptWideHead
+    <> at AcceptWidestHead
     <> at DuplicateKey
     <> [ obligation
        | Just keys <- [traverse entryKey entries],
@@ -411,6 +415,8 @@ tagObligations path number =
         -- The decoder folds a bignum that fits into a plain integer, so an untagged integer can be a valid bignum.
         <> [o | not (encodingFixesPayload number), o <- at (MissingTag number)]
   ]
+    <> at AcceptWideHead
+    <> at AcceptWidestHead
   where
     at = pure ... obligationAt path
 
@@ -489,7 +495,9 @@ validatorObligations path validator =
 -- integer at all.
 rangeObligations :: Trail Absolute -> (Integer, Integer) -> [Obligation]
 rangeObligations path (low, high) =
-  at (AcceptBoundary low)
+  at AcceptWideHead
+    <> at AcceptWidestHead
+    <> at (AcceptBoundary low)
     <> at (AcceptBoundary high)
     <> [o | high - low >= 2, o <- at (InsideRange low high)]
     <> at (BelowRange low)
@@ -505,6 +513,7 @@ valueObligations path value =
   | not (choiceChoseValue value path),
     obligation <- at (AcceptLiteral value) <> at (WrongLiteral value)
   ]
+    <> [obligation | literalHasHead value, obligation <- at AcceptWideHead <> at AcceptWidestHead]
   where
     at = pure ... obligationAt path
 
@@ -513,6 +522,7 @@ primitiveObligations :: Trail Absolute -> Primitive -> [Obligation]
 primitiveObligations path primitive =
   at (AcceptType primitive)
     <> at (WrongType primitive)
+    <> [obligation | hasHead primitive, obligation <- at AcceptWideHead <> at AcceptWidestHead]
     <> concat
       [ at (AcceptBoundary bound)
       | not (underAControl path),

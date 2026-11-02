@@ -25,6 +25,7 @@ library
     Base.Json
     Base.Paths
     Base.Text
+    Coverage.Obligations.Cbor
     Coverage.Obligations.CborTerm
     Coverage.Obligations.Divergence
     Coverage.Obligations.LiteralValue

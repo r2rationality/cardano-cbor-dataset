@@ -48,6 +48,16 @@ renderPrimitive = \case
   PrimArray -> "array"
   PrimMap -> "map"
 
+-- | Whether a value of this type opens with a head that carries a number: an integer its value, a string its length.
+hasHead :: Primitive -> Bool
+hasHead = \case
+  PrimUInt -> True
+  PrimNInt -> True
+  PrimInt -> True
+  PrimBytes -> True
+  PrimText -> True
+  _ -> False
+
 -- | Return the bounds of a primitive type if it admits one
 primitiveRange :: Primitive -> Maybe (Integer, Integer)
 primitiveRange = \case
