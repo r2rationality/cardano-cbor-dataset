@@ -12,6 +12,8 @@ import sys
 INPUT_SUFFIX = ".input.cbor"
 REPORT_VERSION = "2"
 COMMIT = re.compile(r"[0-9a-f]{40}")
+# The report does not name its era: the protocol version tells it. The major version is the one that the node decodes with.
+ERAS = {"11": "conway", "12": "dijkstra"}
 
 @dataclass
 class Counts:
@@ -37,10 +39,10 @@ def read_report(path):
             raise ValueError(f"{field} must be a full commit hash (40 lowercase hexadecimal digits)")
     if not isinstance(report.get("generated_at"), int) or isinstance(report["generated_at"], bool):
         raise ValueError("generated_at must be an integer: milliseconds since the Unix epoch")
-    if not isinstance(report.get("era"), str) or not report["era"]:
-        raise ValueError("era must be the name of the era of the dataset, for example conway")
     if not isinstance(report.get("protocol_version"), str):
         raise ValueError("protocol_version must be a string")
+    if report["protocol_version"].split(".")[0] not in ERAS:
+        raise ValueError(f'no era uses the protocol version {report["protocol_version"]!r}, expected one of {sorted(ERAS)}')
     results = report.get("results")
     if not isinstance(results, dict):
         raise ValueError("results must be a JSON object mapping sample paths to outcomes")
@@ -96,7 +98,7 @@ def make_report(dataset, report):
         "# Cardano CBOR Decoder/Encoder Conformance Report",
         "",
         f"**Corpus:** {markdown(dataset.parent.name)} / {markdown(dataset.name)}  ",
-        f"**Era:** {markdown(report['era'])}  ",
+        f"**Era:** {ERAS[report['protocol_version'].split('.')[0]]}  ",
         f"**Dataset commit:** `{report['dataset_commit']}`  ",
         f"**Implementation commit:** `{report['implementation_commit']}`  ",
         f"**Protocol version:** {markdown(report['protocol_version'])}  ",

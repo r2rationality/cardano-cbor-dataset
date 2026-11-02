@@ -3,7 +3,7 @@
   "title": "Cardano CBOR conformance report",
   "description": "The result of one node implementation on one corpus of the Cardano CBOR dataset.",
   "type": "object",
-  "required": ["version", "era", "generated_at", "protocol_version", "dataset_commit", "implementation_commit", "results"],
+  "required": ["version", "generated_at", "protocol_version", "dataset_commit", "implementation_commit", "results"],
   "additionalProperties": false,
   "properties": {
     "version": {
