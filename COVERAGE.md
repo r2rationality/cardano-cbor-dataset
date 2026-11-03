@@ -144,6 +144,8 @@ An **Accept** obligation is answered by a sample that must decode, a **Reject** 
 | `AcceptLayoutMaximum n f`  | Accept   | Such bytes, where the number `f` has the largest value that the decoder holds                           | `address`                  |
 | `ViolateLayoutMaximum n f` | Reject   | Such bytes, where the number `f` is too large for the decoder                                           | `address`                  |
 | `ViolateLayoutEnd n`       | Reject   | Such bytes, followed by more bytes                                                                      | `address`                  |
+| `AcceptLayoutCase n c`     | Accept   | Bytes laid out as `n` that are well formed and have the feature `c`                                     | `address`                  |
+| `ViolateLayoutCase n c`    | Reject   | Bytes laid out as `n` with exactly one fault, the fault `c`                                             | `address`                  |
 | `ViolateHighBound n`       | Reject   | A value over the ceiling a control sets (for example `.le`)                                             | `port`                     |
 | `ViolateSizeAbove hi`      | Reject   | A value longer than the control allows                                                                  | `url`                      |
 | `ViolateSizeBelow lo`      | Reject   | A value shorter than the control allows                                                                 | `vrf_vkey`                 |
@@ -340,6 +342,25 @@ The specification states some rules as plain `bytes`, for example `address = byt
 decoder reads inside them. A pointer address holds a slot in 32 bits, a transaction index and a certificate index in 16
 bits each, and nothing after them. The specification cannot give obligations for that.
 
-`app/Coverage/Obligations/BytesLayout.hs` lists such layouts, each with the rule it belongs to and the decoder that it
-copies. For each layout, a rule asking for bytes gets the obligations `AcceptLayout`, `AcceptLayoutMaximum` and `ViolateLayoutMaximum`
+`app/Coverage/Obligations/BytesLayout.hs` lists such layouts, each with the rule it belongs to. 
+For each layout, a rule asking for bytes gets the obligations `AcceptLayout`, `AcceptLayoutMaximum` and `ViolateLayoutMaximum`
 for each number, and `ViolateLayoutEnd`.
+
+### Byron address
+
+The pointer address is a list of fields. A Byron address is CBOR inside bytes inside CBOR, so
+`app/Coverage/Obligations/ByronAddress.hs` reads it with the CBOR reader of the coverage, which keeps the head widths,
+and returns the faults that it finds and the features that it sees. A `ViolateLayoutCase` obligation asks for an address
+with exactly one fault. Then a sample breaks one rule alone, and the ledger can only refuse it for that reason. 
+The faults are:
+ 
+ - A wrong CRC
+ - A type other than 0 or 2
+ - Keys that are not strictly ascending
+ - An inner value of attribute 1 or 2 that is wrong
+ - Bytes after the payload
+ - A payload that is not an array of 3
+ - A root that is not 28 bytes
+ - And the indefinite forms. 
+ 
+ Attribute 1 holds one CBOR byte string and attribute 2 one CBOR unsigned integer. Other attributes hold any bytes.

@@ -125,6 +125,10 @@ data ObligationKind
     ViolateLayoutMaximum Text Text
   | -- | Bytes laid out as the named layout, and then more bytes.
     ViolateLayoutEnd Text
+  | -- | Bytes laid out as the named layout, with the feature that the second text says.
+    AcceptLayoutCase Text Text
+  | -- | Bytes laid out as the named layout, with exactly the one fault that the second text says.
+    ViolateLayoutCase Text Text
   | -- | A byte string that holds one valid CBOR value and then more bytes. A decoder that reads the first value and
     -- stops accepts it, and the ledger refuses it.
     TrailingAfterCbor
@@ -206,6 +210,8 @@ categoryFor = \case
   AcceptLayoutMaximum _ _ -> Accept
   ViolateLayoutMaximum _ _ -> Reject
   ViolateLayoutEnd _ -> Reject
+  AcceptLayoutCase _ _ -> Accept
+  ViolateLayoutCase _ _ -> Reject
   TrailingAfterCbor -> Reject
   ViolateHighBound _ -> Reject
   ViolateSizeAbove _ -> Reject
@@ -327,6 +333,8 @@ renderKind = describe
       AcceptLayoutMaximum name field -> "a " <> name <> " with the " <> field <> " at the largest value it holds"
       ViolateLayoutMaximum name field -> "a " <> name <> " with a " <> field <> " too large to hold"
       ViolateLayoutEnd name -> "a " <> name <> " followed by more bytes"
+      AcceptLayoutCase name feature -> "a " <> name <> " that " <> feature
+      ViolateLayoutCase name fault -> "a " <> name <> " that " <> fault
       TrailingAfterCbor -> "bytes whose contents are a CBOR value followed by more bytes"
       WrongEmbedded name -> "bytes whose contents are not a valid " <> unName name
       ViolateHighBound high -> "a value above " <> show high

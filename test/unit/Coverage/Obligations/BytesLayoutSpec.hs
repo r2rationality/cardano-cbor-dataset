@@ -29,6 +29,6 @@ spec = describe "The layout of a pointer address" $ do
     layout = pointerAddressLayout
     reading = readLayout layout
     fits = fmap fitsLayout . reading
-    fitting = fmap (map fieldFits . readingNumbers) . reading
+    fitting = fmap (map numberFits . readingNumbers) . reading
     pointer slot transaction certificate extra =
       BS.pack (0x41 : replicate 28 0x22 <> slot <> transaction <> certificate <> extra)

@@ -6,6 +6,7 @@ import Codec.CBOR.Cuddle.CDDL.Custom.Core (RuleTerm (..))
 import Codec.CBOR.Cuddle.CDDL.Custom.Validator (CustomValidatorResult (..), runValidator)
 import Codec.CBOR.Cuddle.IndexMappable (mapIndex)
 import Coverage.Obligations.BytesLayout
+import Coverage.Obligations.ByronAddress
 import Coverage.Obligations.Cbor
 import Coverage.Obligations.CborTerm
 import Coverage.Obligations.Obligation
@@ -158,13 +159,17 @@ satisfiedAt checker obligation subject =
     ViolateCbor -> isNothing <$> embeddedContents subject
     AcceptLayout name -> withLayout name subject (\reading -> fitsLayout reading)
     AcceptLayoutMaximum name field ->
-      withLayout name subject (\reading -> fitsLayout reading && any (isMaximum field) (readingNumbers reading))
+      withLayout name subject (\reading -> fitsLayout reading && any (\number -> numberName number == field && numberAtMaximum number) (readingNumbers reading))
     ViolateLayoutMaximum name field ->
       withLayout name subject $ \reading ->
         BS.null (readingRest reading)
-          && and [fieldFits number == (named /= field) | number@(named, _, _, _) <- readingNumbers reading]
+          && and [numberFits number == (numberName number /= field) | number <- readingNumbers reading]
     ViolateLayoutEnd name ->
-      withLayout name subject (\reading -> all fieldFits (readingNumbers reading) && not (BS.null (readingRest reading)))
+      withLayout name subject (\reading -> all numberFits (readingNumbers reading) && not (BS.null (readingRest reading)))
+    AcceptLayoutCase name feature -> withByron name subject $ \reading ->
+      any (\(text, holds) -> text == feature && holds reading) byronAcceptances
+    ViolateLayoutCase name fault -> withByron name subject $ \reading ->
+      any (\(text, wanted) -> text == fault && readingFaults reading == [wanted]) byronViolations
     TrailingAfterCbor -> (\bytes -> either (const False) ((< BS.length bytes) . snd) (readCborPrefix bytes)) <$> embeddedBytes subject
     WrongEmbedded name -> maybe False (not . meetsObligations checker name) <$> embeddedContents subject
 
@@ -191,8 +196,14 @@ withLayout name subject test = do
   bytes <- embeddedBytes subject
   pure (any (\layout -> maybe False test (readLayout layout bytes)) [layout | layout <- knownLayouts, layoutName layout == name])
 
-isMaximum :: Text -> (Text, Integer, Int, Int) -> Bool
-isMaximum field (named, value, _, bits) = named == field && value == fieldMaximum bits
+-- | Whether the bytes of a byte string, read as a Byron address, meet a test. 'Nothing' for a term that is not a byte
+-- string, and 'False' for bytes that are not a Byron address at all.
+withByron :: Text -> Cbor -> (ByronReading -> Bool) -> Maybe Bool
+withByron name subject test
+  | name /= byronName = Nothing
+  | otherwise = do
+      bytes <- embeddedBytes subject
+      pure (maybe False test (readByron bytes))
 
 -- | The bytes of a byte string, and 'Nothing' for a term that is not one.
 embeddedBytes :: Cbor -> Maybe BS.ByteString

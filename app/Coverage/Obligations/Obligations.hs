@@ -7,6 +7,7 @@ import Codec.CBOR.Cuddle.CDDL.CtlOp (CtlOp)
 import Codec.CBOR.Cuddle.CDDL.Custom.Validator (TermValidator)
 import Codec.CBOR.Cuddle.CDDL.Resolve (XXCTree (..))
 import Coverage.Obligations.BytesLayout
+import Coverage.Obligations.ByronAddress
 import Coverage.Obligations.LiteralValue
 import Coverage.Obligations.Obligation
 import Coverage.Obligations.Primitive
@@ -32,8 +33,14 @@ ruleObligations (CTreeRoot rules) = deduplicateObligations . obligationsUnder ru
 -- The specification states such a rule as plain bytes, so the layouts are added where the rule states that: at each
 -- place that asks for bytes.
 withLayouts :: Name -> [Obligation] -> [Obligation]
-withLayouts name obligations = obligations <> concatMap (layoutObligations bytesPaths) (layoutsOf name)
+withLayouts name obligations =
+  obligations
+    <> concatMap (layoutObligations bytesPaths) (layoutsOf name)
+    <> [obligationAt path kind | name == Name "address", path <- bytesPaths, kind <- byronKinds]
   where
+    byronKinds =
+      [AcceptLayoutCase byronName feature | (feature, _) <- byronAcceptances]
+        <> [ViolateLayoutCase byronName fault | (fault, _) <- byronViolations]
     bytesPaths = ordNub [obligationPath o | o <- obligations, obligationKind o == AcceptType PrimBytes]
 
 -- | What a decoder expects of the bytes of a layout: the layout itself, each number at its largest value and one past

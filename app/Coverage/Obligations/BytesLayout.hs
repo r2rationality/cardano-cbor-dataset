@@ -48,10 +48,20 @@ pointerAddressLayout =
       layoutFields = [Fixed 28, Number "slot" 32, Number "transaction index" 16, Number "certificate index" 16]
     }
 
+-- | A number as the bytes spell it.
+data NumberRead = NumberRead
+  { numberName :: Text,
+    numberValue :: Integer,
+    -- | The number of groups of 7 bits that the bytes use for it.
+    numberGroups :: Int,
+    -- | The number of bits that the decoder holds it in.
+    numberBits :: Int
+  }
+  deriving (Eq, Show)
+
 -- | What the bytes hold, read field by field.
 data Reading = Reading
-  { -- | Each number with its name, its value, the number of bytes that it takes, and the number of bits it is held in.
-    readingNumbers :: [(Text, Integer, Int, Int)],
+  { readingNumbers :: [NumberRead],
     -- | What follows the last field.
     readingRest :: BS.ByteString
   }
@@ -75,16 +85,20 @@ readLayout layout bytes = do
       (final, remaining) <- BS.uncons afterGroups
       let used = BS.snoc groups final
           value = BS.foldl' (\total byte -> (total `shiftL` 7) + toInteger (byte .&. 0x7f)) 0 used
-      go ((name, value, BS.length used, bits) : numbers) remaining fields
+      go (NumberRead name value (BS.length used) bits : numbers) remaining fields
 
 -- | The largest value that a number of this many bits holds.
-fieldMaximum :: Int -> Integer
-fieldMaximum bits = (1 `shiftL` bits) - 1
+largest :: Int -> Integer
+largest bits = (1 `shiftL` bits) - 1
 
 -- | Whether a number is within what the decoder holds: its value fits, and it takes no more groups than the bits need.
-fieldFits :: (Text, Integer, Int, Int) -> Bool
-fieldFits (_, value, size, bits) = value <= fieldMaximum bits && size <= (bits + 6) `div` 7
+numberFits :: NumberRead -> Bool
+numberFits number = numberValue number <= largest (numberBits number) && numberGroups number <= (numberBits number + 6) `div` 7
+
+-- | Whether a number has the largest value that the decoder holds.
+numberAtMaximum :: NumberRead -> Bool
+numberAtMaximum number = numberValue number == largest (numberBits number)
 
 -- | Whether the decoder reads all of the bytes as this layout.
 fitsLayout :: Reading -> Bool
-fitsLayout reading = all fieldFits (readingNumbers reading) && BS.null (readingRest reading)
+fitsLayout reading = all numberFits (readingNumbers reading) && BS.null (readingRest reading)
