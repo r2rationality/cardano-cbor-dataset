@@ -177,6 +177,14 @@ spec = do
                             ("choice[2:tag3].tag3.control", ViolateSizeAbove 64)
                           ]
 
+    it "A gap between runs of tags is stated, and tags that follow each other leave none" $ do
+      -- Tags 102, 121 .. 127 and 1280 .. 1400 have two gaps, where a decoder that merged the runs would accept a tag.
+      -- Nothing is stated below 102 or above 1400, and the runs 121 .. 127 and 1280 .. 1400 hold no gap inside.
+      [kind | kind@(_, InsideTagGap _ _) <- obligationKinds "%constr<plutus_data>"]
+        `shouldMatchList` [("gen", InsideTagGap 102 121), ("gen", InsideTagGap 127 1280)]
+      -- big_int names the tags 2 and 3, which follow each other.
+      [kind | kind@(_, InsideTagGap _ _) <- obligationKinds "big_int"] `shouldBe` []
+
   describe "Choices" $ do
     it "We check that each alternative is covered" $
       -- auxiliary_data = metadata / auxiliary_data_array / auxiliary_data_map.

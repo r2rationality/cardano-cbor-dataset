@@ -87,6 +87,8 @@ data ObligationKind
     InsideRange Integer Integer
   | -- | A value strictly between two alternatives of a choice that are numbers, which no alternative admits.
     InsideGap Integer Integer
+  | -- | A tag strictly between two runs of tags that the alternatives of a choice name, which no alternative names.
+    InsideTagGap Word64 Word64
   | -- | A map without the required key.
     MissingRequiredKey LiteralValue
   | -- | A value without a tag, where the rule names one.
@@ -176,6 +178,7 @@ categoryFor = \case
   DuplicateKey -> Reject
   InsideRange _ _ -> Accept
   InsideGap _ _ -> Reject
+  InsideTagGap _ _ -> Reject
   MissingRequiredKey _ -> Reject
   NoBranchMatches _ -> Reject
   NoDiscriminantMatches _ -> Reject
@@ -327,6 +330,7 @@ renderKind = describe
       AcceptBoundary value -> "the value " <> show value <> ", at the end of what is admitted"
       InsideRange low high -> "a value strictly between " <> show low <> " and " <> show high
       InsideGap low high -> "a value strictly between " <> show low <> " and " <> show high <> ", which no alternative admits"
+      InsideTagGap low high -> "a tag strictly between " <> show low <> " and " <> show high <> ", which no alternative names"
       BelowRange low -> "a value below " <> show low
       AboveRange high -> "a value above " <> show high
       AcceptReference name -> "a valid " <> unName name <> " at an entry that may be absent"

@@ -121,6 +121,7 @@ satisfiedAt checker obligation subject =
     NoKeyMatches keys -> mapHasForeignKey keys subject
     DuplicateKey -> mapHasDuplicateKey subject
     NoTagMatches tags -> Just (maybe False (`notElem` tags) (termTag subject))
+    InsideTagGap low high -> Just (maybe False (\tag -> tag > low && tag < high) (termTag subject))
     NoReferenceMatches shape names -> Just (shapeFits shape subject && not (any (\name -> meetsObligations checker name subject) names))
     NoDiscriminantMatches values ->
       Just (maybe False (`notElem` values) (leadingUnsigned subject))

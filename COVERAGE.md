@@ -125,6 +125,7 @@ An **Accept** obligation is answered by a sample that must decode, a **Reject** 
 | `DuplicateKey`             | Reject   | A map carrying the same key twice                                                                       | `withdrawals`              |
 | `InsideGap lo hi`          | Reject   | A value strictly between two alternatives that are numbers, which no alternative admits                 | `nonzero_int64`            |
 | `InsideRange lo hi`        | Accept   | A value strictly between the ends of a range                                                            | `redeemer`                 |
+| `InsideTagGap lo hi`       | Reject   | A tag strictly between two runs of tags that the alternatives name, which none of them names            | `%constr<plutus_data>`     |
 | `MissingRequiredKey k`     | Reject   | The same map with that entry left out                                                                   | `transaction_body`         |
 | `MissingTag n`             | Reject   | A value without the tag `n`                                                                             | `unit_interval`            |
 | `NoBranchMatches shapes`   | Reject   | A value matching none of the alternatives                                                               | `drep`                     |
@@ -196,6 +197,9 @@ Some obligations are *not* generated:
    E.g. `"big_int"`, which names tags 2 and 3.
    In the same way, a choice whose alternatives are numbers states the numbers that no alternative admits:
    `BelowRange`, `AboveRange` and `InsideGap`. E.g. `"nonzero_int64"`, which refuses 0.
+   A choice of tags states only the gaps between its runs of tags, for example the tags between 127 and 1280 in
+   `"%constr<plutus_data>"`. Tags that follow each other, such as 2 and 3, leave no gap, and nothing is stated below the
+   lowest tag or above the highest one.
 
 #### References to other rules
 

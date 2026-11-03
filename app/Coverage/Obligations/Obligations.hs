@@ -133,6 +133,7 @@ choiceObligations :: Map Name RuleNode -> Trail Absolute -> [RuleNode] -> [Oblig
 choiceObligations rules path alternatives =
   at (NoBranchMatches shapes)
     <> [o | not (null tags), o <- at (NoTagMatches tags)]
+    <> tagGaps path tags
     <> [o | not (null discriminants), o <- at (NoDiscriminantMatches discriminants)]
     <> elementObligations rules path alternatives shapes
     <> sameShapeReferences
@@ -198,6 +199,21 @@ elementObligations rules path alternatives shapes = case overlapping of
     -- Past this many combinations, each one is a separate sample to generate, and the obligations would grow faster
     -- than a corpus can answer them.
     widestUsefulCombination = 12
+
+-- | The tags between two runs of tags that the alternatives of a choice name, which no alternative names.
+--
+-- A tag in such a gap is where an off-by-one in a range check shows: a decoder that reads @121 .. 127@ and @1280 .. 1400@
+-- as one range would accept it. Tags that follow each other leave no gap, and nothing is stated below the lowest tag or
+-- above the highest one, since no alternative marks where those stop.
+tagGaps :: Trail Absolute -> [Word64] -> [Obligation]
+tagGaps path tags =
+  concat [at (InsideTagGap end start) | ((_, end), (start, _)) <- zip runs (drop 1 runs), start - end >= 2]
+  where
+    at = pure ... obligationAt path
+    -- The runs of tags that follow each other, each as its first and its last tag.
+    runs = reverse (foldl' extend [] (ordNub (sort tags)))
+    extend ((start, end) : earlier) tag | tag == end + 1 = (start, tag) : earlier
+    extend earlier tag = (tag, tag) : earlier
 
 -- | The numbers that no alternative of a choice admits, when some alternatives are ranges or numbers.
 --
