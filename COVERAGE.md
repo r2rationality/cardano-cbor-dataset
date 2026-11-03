@@ -93,7 +93,7 @@ Each row below specifies one possible aspect of a rule. The sections are in the 
 | 8. References  | Reference to a rule                    | `AcceptReference r`, `WrongReference r`, unless the rule is folded or inlined, see [References to other rules](#references-to-other-rules)                                                                                                                     |
 | 9. Controls    | `.size` on `bytes` or `text`           | `AcceptSize low high`, `ViolateSizeBelow`, `ViolateSizeAbove`                                                                                                                                                                                                  |
 |                | `.size` on `uint`, `nint`, `int`       | `AcceptBoundary (256^n - 1)`, `ViolateHighBound`                                                                                                                                                                                                               |
-|                | `.cbor`                                | `AcceptCbor`, `ViolateCbor`, and `WrongEmbedded r` when the control names a rule `r`                                                                                                                                                                           |
+|                | `.cbor`                                | `AcceptCbor`, `ViolateCbor`, `TrailingAfterCbor`, and `WrongEmbedded r` when the control names a rule `r`                                                                                                                                                                           |
 |                | `.le`                                  | `AcceptBoundary high`, `ViolateHighBound high`                                                                                                                                                                                                                 |
 |                | Any other control                      | an error: the derivation stops and names the operator                                                                                                                                                                                                          |
 | 10. Validators | Custom validator                       | `ValidatorSucceeds`, `ValidatorFails`                                                                                                                                                                                                                          |
@@ -139,6 +139,7 @@ An **Accept** obligation is answered by a sample that must decode, a **Reject** 
 | `ValidatorFails`           | Reject   | A sample refused by the rule validator                                                                  | `transaction_body`         |
 | `ValidatorSucceeds`        | Accept   | A sample accepted by the rule validator                                                                 | `transaction_body`         |
 | `ViolateCbor`              | Reject   | A byte string whose contents do not decode as valid CBOR                                                | `script_ref`               |
+| `TrailingAfterCbor`        | Reject   | A byte string that holds one valid CBOR value and then more bytes                                       | `script_ref`               |
 | `ViolateHighBound n`       | Reject   | A value over the ceiling a control sets (for example `.le`)                                             | `port`                     |
 | `ViolateSizeAbove hi`      | Reject   | A value longer than the control allows                                                                  | `url`                      |
 | `ViolateSizeBelow lo`      | Reject   | A value shorter than the control allows                                                                 | `vrf_vkey`                 |
@@ -249,6 +250,7 @@ Only the end of the range catches a decoder that reads the value into a type too
 .              AcceptTag 24 / WrongTag 24          the tag number is checked
 .              MissingTag 24                       a value without the tag must be refused
 tag24.control  AcceptCbor / ViolateCbor            the embedded bytes must decode as CBOR
+tag24.control  TrailingAfterCbor                   one value, then more bytes, must be refused
 tag24.control  WrongEmbedded script                the decoded value must be a valid script
 tag24.control  AcceptType bytes / WrongType bytes  the payload must be a byte string
 ```

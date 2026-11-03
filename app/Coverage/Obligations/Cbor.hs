@@ -55,8 +55,12 @@ data Length
 -- | The one CBOR value these bytes hold.
 readCbor :: BS.ByteString -> Either Text Cbor
 readCbor input = do
-  (value, end) <- item 0
+  (value, end) <- readCborPrefix input
   if end == BS.length input then Right value else Left "trailing bytes after a complete value"
+
+-- | The first CBOR value in these bytes, and the position where it ends. Bytes can follow it.
+readCborPrefix :: BS.ByteString -> Either Text (Cbor, Int)
+readCborPrefix input = item 0
   where
     item :: Int -> Either Text (Cbor, Int)
     item position = do

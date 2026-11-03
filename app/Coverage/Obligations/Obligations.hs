@@ -467,6 +467,7 @@ controlObligations path op target controller
   | operator == "Cbor" =
       at AcceptCbor
         <> at ViolateCbor
+        <> at TrailingAfterCbor
         <> case controller of
           CTree.CTreeE (MRuleRef ref) -> at (WrongEmbedded ref)
           _ -> []

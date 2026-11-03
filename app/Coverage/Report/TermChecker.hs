@@ -155,6 +155,7 @@ satisfiedAt checker obligation subject =
     AboveRange high -> (> high) <$> termInteger subject
     AcceptCbor -> isJust <$> embeddedContents subject
     ViolateCbor -> isNothing <$> embeddedContents subject
+    TrailingAfterCbor -> (\bytes -> either (const False) ((< BS.length bytes) . snd) (readCborPrefix bytes)) <$> embeddedBytes subject
     WrongEmbedded name -> maybe False (not . meetsObligations checker name) <$> embeddedContents subject
 
 -- | Check if the elements of an array term fit the given shapes.
@@ -171,6 +172,12 @@ termSize :: Cbor -> Maybe Integer
 termSize = \case
   CBytes _ bytes -> Just (fromIntegral (BS.length bytes))
   CText _ text -> Just (fromIntegral (BS.length (TE.encodeUtf8 text)))
+  _ -> Nothing
+
+-- | The bytes of a byte string, and 'Nothing' for a term that is not one.
+embeddedBytes :: Cbor -> Maybe BS.ByteString
+embeddedBytes = \case
+  CBytes _ bytes -> Just bytes
   _ -> Nothing
 
 -- | The value that a byte string holds, which is what @.cbor@ asks for: 'Just' 'Nothing' when its contents do not

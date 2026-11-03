@@ -645,6 +645,7 @@ spec = do
                             ("map{3}.occur0.value.tag24.control", AcceptWidestHead),
                             ("map{3}.occur0.value.tag24.control", AcceptCbor),
                             ("map{3}.occur0.value.tag24.control", ViolateCbor),
+                            ("map{3}.occur0.value.tag24.control", TrailingAfterCbor),
                             ("map{3}.occur0.value.tag24.control", WrongEmbedded (Name "script")),
                             ("map{3}.occur0.value.tag24.control", AcceptType PrimBytes),
                             ("map{3}.occur0.value.tag24.control", WrongType PrimBytes)
@@ -1032,6 +1033,7 @@ spec = do
                             ("tag24.control", AcceptWidestHead),
                             ("tag24.control", AcceptCbor),
                             ("tag24.control", ViolateCbor),
+                            ("tag24.control", TrailingAfterCbor),
                             ("tag24.control", WrongEmbedded (Name "script")),
                             ("tag24.control", AcceptType PrimBytes),
                             ("tag24.control", WrongType PrimBytes)

@@ -162,6 +162,11 @@ spec = do
       read' [0x01, 0x01] `shouldSatisfy` isLeft
       read' [0x62, 0xff, 0xff] `shouldSatisfy` isLeft
 
+    it "reads the first value and says where it ends, when bytes follow" $ do
+      readCborPrefix (BS.pack [0x82, 0x01, 0x02, 0x00]) `shouldBe` Right (array [uint 1, uint 2], 3)
+      readCborPrefix (BS.pack [0x01, 0xff]) `shouldBe` Right (uint 1, 1)
+      readCborPrefix (BS.pack [0x82, 0x01]) `shouldSatisfy` isLeft
+
     it "answers whether a head is wide, for the values that have one" $ do
       hasWideHead (wideArray []) `shouldBe` Just True
       hasWideHead (array []) `shouldBe` Just False

@@ -117,6 +117,9 @@ data ObligationKind
     ValidatorSucceeds
   | -- | A byte string whose contents do not decode as CBOR.
     ViolateCbor
+  | -- | A byte string that holds one valid CBOR value and then more bytes. A decoder that reads the first value and
+    -- stops accepts it, and the ledger refuses it.
+    TrailingAfterCbor
   | -- | @uint .size 4@ is not a length but a ceiling: the value has to fit in four bytes.
     ViolateHighBound Integer
   | -- | A value above the size that the .size control admits.
@@ -191,6 +194,7 @@ categoryFor = \case
   ValidatorFails -> Reject
   ValidatorSucceeds -> Accept
   ViolateCbor -> Reject
+  TrailingAfterCbor -> Reject
   ViolateHighBound _ -> Reject
   ViolateSizeAbove _ -> Reject
   ViolateSizeBelow _ -> Reject
@@ -307,6 +311,7 @@ renderKind = describe
       ViolateSizeAbove high -> "a size above " <> show high
       AcceptCbor -> "bytes whose contents decode as CBOR"
       ViolateCbor -> "bytes whose contents do not decode as CBOR"
+      TrailingAfterCbor -> "bytes whose contents are a CBOR value followed by more bytes"
       WrongEmbedded name -> "bytes whose contents are not a valid " <> unName name
       ViolateHighBound high -> "a value above " <> show high
       AcceptBranch -> "a sample taking this alternative"
