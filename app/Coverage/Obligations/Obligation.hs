@@ -117,6 +117,14 @@ data ObligationKind
     ValidatorSucceeds
   | -- | A byte string whose contents do not decode as CBOR.
     ViolateCbor
+  | -- | Bytes laid out as the named layout, with every number inside the size the decoder holds it in.
+    AcceptLayout Text
+  | -- | Bytes laid out as the named layout, where the named number has the largest value that the decoder holds.
+    AcceptLayoutMaximum Text Text
+  | -- | Bytes laid out as the named layout, where the named number is too large for the decoder.
+    ViolateLayoutMaximum Text Text
+  | -- | Bytes laid out as the named layout, and then more bytes.
+    ViolateLayoutEnd Text
   | -- | A byte string that holds one valid CBOR value and then more bytes. A decoder that reads the first value and
     -- stops accepts it, and the ledger refuses it.
     TrailingAfterCbor
@@ -194,6 +202,10 @@ categoryFor = \case
   ValidatorFails -> Reject
   ValidatorSucceeds -> Accept
   ViolateCbor -> Reject
+  AcceptLayout _ -> Accept
+  AcceptLayoutMaximum _ _ -> Accept
+  ViolateLayoutMaximum _ _ -> Reject
+  ViolateLayoutEnd _ -> Reject
   TrailingAfterCbor -> Reject
   ViolateHighBound _ -> Reject
   ViolateSizeAbove _ -> Reject
@@ -311,6 +323,10 @@ renderKind = describe
       ViolateSizeAbove high -> "a size above " <> show high
       AcceptCbor -> "bytes whose contents decode as CBOR"
       ViolateCbor -> "bytes whose contents do not decode as CBOR"
+      AcceptLayout name -> "bytes laid out as a " <> name
+      AcceptLayoutMaximum name field -> "a " <> name <> " with the " <> field <> " at the largest value it holds"
+      ViolateLayoutMaximum name field -> "a " <> name <> " with a " <> field <> " too large to hold"
+      ViolateLayoutEnd name -> "a " <> name <> " followed by more bytes"
       TrailingAfterCbor -> "bytes whose contents are a CBOR value followed by more bytes"
       WrongEmbedded name -> "bytes whose contents are not a valid " <> unName name
       ViolateHighBound high -> "a value above " <> show high

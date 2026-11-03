@@ -25,6 +25,7 @@ library
     Base.Json
     Base.Paths
     Base.Text
+    Coverage.Obligations.BytesLayout
     Coverage.Obligations.Cbor
     Coverage.Obligations.CborTerm
     Coverage.Obligations.Divergence
@@ -156,6 +157,7 @@ test-suite unit
   hs-source-dirs:   test/unit
   -- List spec modules so HLS can load the discovered tests.
   other-modules:
+    Coverage.Obligations.BytesLayoutSpec
     Coverage.Obligations.CborTermSpec
     Coverage.Obligations.DivergenceSpec
     Coverage.Obligations.ObligationsSpec

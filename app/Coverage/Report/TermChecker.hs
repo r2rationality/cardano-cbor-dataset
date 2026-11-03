@@ -5,10 +5,11 @@ import Codec.CBOR.Cuddle.CDDL.CTree (CTreeRoot (..))
 import Codec.CBOR.Cuddle.CDDL.Custom.Core (RuleTerm (..))
 import Codec.CBOR.Cuddle.CDDL.Custom.Validator (CustomValidatorResult (..), runValidator)
 import Codec.CBOR.Cuddle.IndexMappable (mapIndex)
+import Coverage.Obligations.BytesLayout
 import Coverage.Obligations.Cbor
 import Coverage.Obligations.CborTerm
 import Coverage.Obligations.Obligation
-import Coverage.Obligations.Obligations (ruleObligations)
+import Coverage.Obligations.Obligations (ruleObligations, withLayouts)
 import Coverage.Obligations.Shape
 import Coverage.Obligations.SpecRule (HuddleSpec)
 import Coverage.Obligations.Trail (stepsBelowPrefix)
@@ -28,7 +29,7 @@ data TermChecker = TermChecker
 -- | A term checker for this specification.
 newTermChecker :: HuddleSpec -> TermChecker
 newTermChecker specification@(CTreeRoot rules) =
-  TermChecker specification (LazyMap.map (ruleObligations specification) rules)
+  TermChecker specification (LazyMap.mapWithKey (\name rule -> withLayouts name (ruleObligations specification rule)) rules)
 
 -- | The obligations of a rule, none for a name that is not a rule.
 obligationsOf :: TermChecker -> Name -> [Obligation]
@@ -155,6 +156,15 @@ satisfiedAt checker obligation subject =
     AboveRange high -> (> high) <$> termInteger subject
     AcceptCbor -> isJust <$> embeddedContents subject
     ViolateCbor -> isNothing <$> embeddedContents subject
+    AcceptLayout name -> withLayout name subject (\reading -> fitsLayout reading)
+    AcceptLayoutMaximum name field ->
+      withLayout name subject (\reading -> fitsLayout reading && any (isMaximum field) (readingNumbers reading))
+    ViolateLayoutMaximum name field ->
+      withLayout name subject $ \reading ->
+        BS.null (readingRest reading)
+          && and [fieldFits number == (named /= field) | number@(named, _, _, _) <- readingNumbers reading]
+    ViolateLayoutEnd name ->
+      withLayout name subject (\reading -> all fieldFits (readingNumbers reading) && not (BS.null (readingRest reading)))
     TrailingAfterCbor -> (\bytes -> either (const False) ((< BS.length bytes) . snd) (readCborPrefix bytes)) <$> embeddedBytes subject
     WrongEmbedded name -> maybe False (not . meetsObligations checker name) <$> embeddedContents subject
 
@@ -173,6 +183,16 @@ termSize = \case
   CBytes _ bytes -> Just (fromIntegral (BS.length bytes))
   CText _ text -> Just (fromIntegral (BS.length (TE.encodeUtf8 text)))
   _ -> Nothing
+
+-- | Whether the bytes of a byte string, read as the named layout, meet a test. 'Nothing' for a term that is not a byte
+-- string, and 'False' for bytes that do not start like the layout.
+withLayout :: Text -> Cbor -> (Reading -> Bool) -> Maybe Bool
+withLayout name subject test = do
+  bytes <- embeddedBytes subject
+  pure (any (\layout -> maybe False test (readLayout layout bytes)) [layout | layout <- knownLayouts, layoutName layout == name])
+
+isMaximum :: Text -> (Text, Integer, Int, Int) -> Bool
+isMaximum field (named, value, _, bits) = named == field && value == fieldMaximum bits
 
 -- | The bytes of a byte string, and 'Nothing' for a term that is not one.
 embeddedBytes :: Cbor -> Maybe BS.ByteString

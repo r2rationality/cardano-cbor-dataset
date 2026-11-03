@@ -140,6 +140,10 @@ An **Accept** obligation is answered by a sample that must decode, a **Reject** 
 | `ValidatorSucceeds`        | Accept   | A sample accepted by the rule validator                                                                 | `transaction_body`         |
 | `ViolateCbor`              | Reject   | A byte string whose contents do not decode as valid CBOR                                                | `script_ref`               |
 | `TrailingAfterCbor`        | Reject   | A byte string that holds one valid CBOR value and then more bytes                                       | `script_ref`               |
+| `AcceptLayout n`           | Accept   | Bytes laid out as the bytes layout `n`, every number inside the size the decoder holds it in            | `address`                  |
+| `AcceptLayoutMaximum n f`  | Accept   | Such bytes, where the number `f` has the largest value that the decoder holds                           | `address`                  |
+| `ViolateLayoutMaximum n f` | Reject   | Such bytes, where the number `f` is too large for the decoder                                           | `address`                  |
+| `ViolateLayoutEnd n`       | Reject   | Such bytes, followed by more bytes                                                                      | `address`                  |
 | `ViolateHighBound n`       | Reject   | A value over the ceiling a control sets (for example `.le`)                                             | `port`                     |
 | `ViolateSizeAbove hi`      | Reject   | A value longer than the control allows                                                                  | `url`                      |
 | `ViolateSizeBelow lo`      | Reject   | A value shorter than the control allows                                                                 | `vrf_vkey`                 |
@@ -329,3 +333,13 @@ dataset being verified. Concurrent runs receive separate directories.
 Every `verify` invocation also writes its error messages to `failures.log` inside that invocation's coverage directory.
 The verifier statistics and the failure-log path are printed to standard output. Individual errors remain in
 the log instead of overwhelming the console output.
+
+## Bytes layouts
+
+The specification states some rules as plain `bytes`, for example `address = bytes`, and says nothing of what the
+decoder reads inside them. A pointer address holds a slot in 32 bits, a transaction index and a certificate index in 16
+bits each, and nothing after them. The specification cannot give obligations for that.
+
+`app/Coverage/Obligations/BytesLayout.hs` lists such layouts, each with the rule it belongs to and the decoder that it
+copies. For each layout, a rule asking for bytes gets the obligations `AcceptLayout`, `AcceptLayoutMaximum` and `ViolateLayoutMaximum`
+for each number, and `ViolateLayoutEnd`.

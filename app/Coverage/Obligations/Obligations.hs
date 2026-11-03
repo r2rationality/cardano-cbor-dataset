@@ -6,6 +6,7 @@ import Codec.CBOR.Cuddle.CDDL.CTree qualified as CTree
 import Codec.CBOR.Cuddle.CDDL.CtlOp (CtlOp)
 import Codec.CBOR.Cuddle.CDDL.Custom.Validator (TermValidator)
 import Codec.CBOR.Cuddle.CDDL.Resolve (XXCTree (..))
+import Coverage.Obligations.BytesLayout
 import Coverage.Obligations.LiteralValue
 import Coverage.Obligations.Obligation
 import Coverage.Obligations.Primitive
@@ -25,6 +26,29 @@ import Universum ((...))
 -- Eventually, obligations are deduplicated to ensure each unique obligation is only listed once.
 ruleObligations :: HuddleSpec -> RuleNode -> [Obligation]
 ruleObligations (CTreeRoot rules) = deduplicateObligations . obligationsUnder rules startTrail
+
+-- | The obligations of a rule, with those of the layouts that the decoder expects inside its bytes.
+--
+-- The specification states such a rule as plain bytes, so the layouts are added where the rule states that: at each
+-- place that asks for bytes.
+withLayouts :: Name -> [Obligation] -> [Obligation]
+withLayouts name obligations = obligations <> concatMap (layoutObligations bytesPaths) (layoutsOf name)
+  where
+    bytesPaths = ordNub [obligationPath o | o <- obligations, obligationKind o == AcceptType PrimBytes]
+
+-- | What a decoder expects of the bytes of a layout: the layout itself, each number at its largest value and one past
+-- it, and no byte after the last field.
+layoutObligations :: [Trail Absolute] -> BytesLayout -> [Obligation]
+layoutObligations paths layout =
+  concat
+    [ obligationAt path <$> ([AcceptLayout name] <> concatMap numberObligations (layoutFields layout) <> [ViolateLayoutEnd name])
+    | path <- paths
+    ]
+  where
+    name = layoutName layout
+    numberObligations = \case
+      Number field _ -> [AcceptLayoutMaximum name field, ViolateLayoutMaximum name field]
+      Fixed _ -> []
 
 -- | The obligations of an element of a rule, and of every element inside it, at every depth.
 --
