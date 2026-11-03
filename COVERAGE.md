@@ -139,6 +139,7 @@ An **Accept** obligation is answered by a sample that must decode, a **Reject** 
 | `ValidatorFails`           | Reject   | A sample refused by the rule validator                                                                  | `transaction_body`         |
 | `ValidatorSucceeds`        | Accept   | A sample accepted by the rule validator                                                                 | `transaction_body`         |
 | `ViolateCbor`              | Reject   | A byte string whose contents do not decode as valid CBOR                                                | `script_ref`               |
+| `NegativeInteger`          | Reject   | A negative integer where the specification says `uint`                                                  | `transaction_input`        |
 | `TrailingAfterCbor`        | Reject   | A byte string that holds one valid CBOR value and then more bytes                                       | `script_ref`               |
 | `AcceptLayout n`           | Accept   | Bytes laid out as the bytes layout `n`, every number inside the size the decoder holds it in            | `address`                  |
 | `AcceptLayoutMaximum n f`  | Accept   | Such bytes, where the number `f` has the largest value that the decoder holds                           | `address`                  |

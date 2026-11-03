@@ -149,6 +149,9 @@ data ObligationKind
     WrongReference Name
   | -- | A tag other than the one the rule names.
     WrongTag Word64
+  | -- | A negative integer where the specification says @uint@. It is the nearest value that is not a @uint@, and a
+    -- decoder that reads a plain integer and checks the sign late can accept it.
+    NegativeInteger
   | -- | A value of another primitive type than the one the specification names.
     WrongType Primitive
   deriving (Eq, Show, Generic)
@@ -221,6 +224,7 @@ categoryFor = \case
   WrongLiteral _ -> Reject
   WrongReference _ -> Reject
   WrongTag _ -> Reject
+  NegativeInteger -> Reject
   WrongType _ -> Reject
 
 -- | Create one obligation of a rule, at the end of a trail down the rule. The obligation is stated and checked at the same
@@ -245,6 +249,8 @@ deniesBranchShape rules shape alternative = \case
   -- An alternative that is a bare primitive is found by being one, so a
   -- term of another type is a term of a different alternative.
   WrongType primitive -> shape == ShapePrimitive primitive
+  -- A negative integer is a term of another alternative, as a term of another type is.
+  NegativeInteger -> shape == ShapePrimitive PrimUInt
   WrongTag wanted -> shape == ShapeTag wanted
   MissingTag wanted -> shape == ShapeTag wanted
   -- An alternative that is one value is found by that value, so any sample
@@ -367,6 +373,7 @@ renderKind = describe
       WrongReference name -> "a value that is not a valid " <> unName name
       AcceptType primitive -> "a value of type " <> renderPrimitive primitive
       WrongType primitive -> "a value that is not " <> renderPrimitive primitive
+      NegativeInteger -> "a negative integer"
       AcceptLiteral value -> "the value " <> renderLiteral value
       WrongLiteral value -> "a value other than " <> renderLiteral value
       AcceptTag number -> "the tag " <> show number

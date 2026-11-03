@@ -106,6 +106,7 @@ satisfiedAt checker obligation subject =
     WrongReference name -> Just (not (meetsObligations checker name subject))
     AcceptType primitive -> matchesPrimitive primitive subject
     WrongType primitive -> not <$> matchesPrimitive primitive subject
+    NegativeInteger -> (< 0) <$> termInteger subject
     AcceptLiteral value -> matchesLiteral value subject
     WrongLiteral value -> not <$> matchesLiteral value subject
     AcceptDefinite -> not <$> isIndefinite subject

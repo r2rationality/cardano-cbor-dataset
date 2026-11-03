@@ -570,6 +570,7 @@ primitiveObligations :: Trail Absolute -> Primitive -> [Obligation]
 primitiveObligations path primitive =
   at (AcceptType primitive)
     <> at (WrongType primitive)
+    <> [obligation | primitive == PrimUInt, obligation <- at NegativeInteger]
     <> [obligation | hasHead primitive, obligation <- at AcceptWideHead <> at AcceptWidestHead]
     <> concat
       [ at (AcceptBoundary bound)

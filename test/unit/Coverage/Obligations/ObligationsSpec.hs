@@ -497,7 +497,8 @@ spec = do
                             ("array[1].value.control", AcceptBoundary 65535),
                             ("array[1].value.control", ViolateHighBound 65535),
                             ("array[1].value.control", AcceptType PrimUInt),
-                            ("array[1].value.control", WrongType PrimUInt)
+                            ("array[1].value.control", WrongType PrimUInt),
+                            ("array[1].value.control", NegativeInteger)
                           ]
 
   describe "Maps" $ do
@@ -1004,7 +1005,8 @@ spec = do
                             ("control", AcceptWidestHead),
                             ("control", ViolateHighBound 4294967295),
                             ("control", AcceptType PrimUInt),
-                            ("control", WrongType PrimUInt)
+                            ("control", WrongType PrimUInt),
+                            ("control", NegativeInteger)
                           ]
 
     it ".le check the maximum size of a number" $
@@ -1017,7 +1019,8 @@ spec = do
                             ("control", AcceptWidestHead),
                             ("control", ViolateHighBound 65535),
                             ("control", AcceptType PrimUInt),
-                            ("control", WrongType PrimUInt)
+                            ("control", WrongType PrimUInt),
+                            ("control", NegativeInteger)
                           ]
 
     it ".cbor checks the contents of an embedded cbor control" $
