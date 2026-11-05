@@ -7,7 +7,8 @@ That environment installs on your shell:
  - GHC 9.6.7
  - Haskell Language Server (HLS 2.10.0.0, the packaged fallback)
  - Cabal
- - [Tricorder](https://github.com/tweag/tricorder)
+ - [Tricorder](https://github.com/tweag/tricorder), built from its flake. Trust the binary cache `tweag-tricorder.cachix.org`,
+   or Nix compiles GHC from source on the first activation.
  - [just](https://just.systems), the command runner for the recipes below.
 
 From the repository root, you can activate the environment with:
@@ -102,13 +103,15 @@ clean build, not the slow integration suite. You can open the Tricorder ui in fl
 just tricorder
 ```
 
+The first start rebuilds the Cardano packages once, which can take a few minutes. Later starts are fast.
+
 #### For coding agents
 
 A Tricorder MCP server can be configured for this project using a prompt such as:
 
 > Compile and check Haskell through the Tricorder MCP server, never with `cabal build` or `cabal test`.
-> Call `status` first; if the daemon is stopped, call `start` and wait for the first build to finish.
-> Read compiler errors and warnings from `status`, test failures from `test_results`,
+> Call `status` with `wait` first; if the daemon is stopped, call `start_daemon`.
+> Read compiler errors and warnings from `status`, test failures from `test_suites`,
 > and `-- >>>` expression results from `eval_comments`.
 > Never call `restart` or `stop` while a build or a Cabal command is in flight.
 

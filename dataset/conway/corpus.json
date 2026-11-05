@@ -231,6 +231,146 @@
         "voting_procedure/manual-invalid/indefinite-array"
       ],
       "reason": "The record decoder (RecD) refuses an indefinite array: it looks for the break byte before it reads the fields."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "big_int",
+      "path": "choice[1:tag2]",
+      "obligation": {"tag": "AcceptWideHead"},
+      "samples": [
+        "big_int/manual-invalid/wide-tag-2"
+      ],
+      "reason": "plutus-core reads a bignum only where cborg reports the exact bytes c2: any other spelling of the tag reads as a constructor tag, and 2 is not one, so the decoder refuses it."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "big_int",
+      "path": "choice[2:tag3]",
+      "obligation": {"tag": "AcceptWideHead"},
+      "samples": [
+        "big_int/manual-invalid/wide-tag-3"
+      ],
+      "reason": "plutus-core reads a bignum only where cborg reports the exact bytes c3: any other spelling of the tag reads as a constructor tag, and 3 is not one, so the decoder refuses it."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "babbage_transaction_output",
+      "path": ".",
+      "obligation": {"tag": "AcceptWidestHead"},
+      "samples": [
+        "babbage_transaction_output/manual-invalid/widest-map-head"
+      ],
+      "reason": "The decoder picks the map or the list encoding from the token type. cborg reports an 8-byte head as TypeMapLen64, which it does not list, so the map is read as a list and refused."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "redeemers",
+      "path": "choice[1:map]",
+      "obligation": {"tag": "AcceptWidestHead"},
+      "samples": [
+        "redeemers/manual-invalid/widest-map-head"
+      ],
+      "reason": "The decoder picks the map or the list encoding from the token type. cborg reports an 8-byte head as TypeMapLen64, which it does not list, so the map is read as a list and refused."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "big_int",
+      "path": "choice[1:tag2]",
+      "obligation": {"tag": "AcceptWidestHead"},
+      "samples": [
+        "big_int/manual-invalid/widest-tag-2"
+      ],
+      "reason": "plutus-core reads a bignum only where cborg reports the exact bytes c2: any other spelling of the tag reads as a constructor tag, and 2 is not one, so the decoder refuses it."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "big_int",
+      "path": "choice[2:tag3]",
+      "obligation": {"tag": "AcceptWidestHead"},
+      "samples": [
+        "big_int/manual-invalid/widest-tag-3"
+      ],
+      "reason": "plutus-core reads a bignum only where cborg reports the exact bytes c3: any other spelling of the tag reads as a constructor tag, and 3 is not one, so the decoder refuses it."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "%multiasset<positive_coin>",
+      "path": ".",
+      "obligation": {"tag": "AcceptDefinite"},
+      "samples": [
+        "%multiasset<positive_coin>/manual-invalid/too-many-assets-one-policy",
+        "%multiasset<positive_coin>/manual-invalid/too-many-assets-three-policies",
+        "%multiasset<positive_coin>/manual-invalid/too-many-policies-empty-names"
+      ],
+      "reason": "The ledger keeps a multi-asset value in a compact form of at most 65535 bytes, and the decoder refuses a larger one. Each asset counts 44 bytes and each policy 28 bytes, whatever the length of the names."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "mint",
+      "path": ".",
+      "obligation": {"tag": "AcceptDefinite"},
+      "samples": [
+        "mint/manual-invalid/too-many-assets-one-policy",
+        "mint/manual-invalid/too-many-assets-three-policies",
+        "mint/manual-invalid/too-many-policies-empty-names"
+      ],
+      "reason": "The ledger keeps a multi-asset value in a compact form of at most 65535 bytes, and the decoder refuses a larger one. Each asset counts 44 bytes and each policy 28 bytes, whatever the length of the names."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "value",
+      "path": "choice[1:array]",
+      "obligation": {"tag": "AcceptDefinite"},
+      "samples": [
+        "value/manual-invalid/too-many-assets-one-policy",
+        "value/manual-invalid/too-many-assets-three-policies",
+        "value/manual-invalid/too-many-policies-empty-names"
+      ],
+      "reason": "The ledger keeps a multi-asset value in a compact form of at most 65535 bytes, and the decoder refuses a larger one. Each asset counts 44 bytes and each policy 28 bytes, whatever the length of the names."
+    },
+    {
+      "rule": "bounded_bytes",
+      "path": "control",
+      "obligation": {"tag": "ViolateSizeAbove", "contents": 64},
+      "kind": "incorrect-specification",
+      "samples": [
+        "bounded_bytes/manual-valid/chunks-above-the-size-limit"
+      ],
+      "reason": "The decoder holds each chunk of a byte string to 64 bytes and does not add the chunks up, so a byte string of any length is read when it is written in chunks of at most 64 bytes."
+    },
+    {
+      "rule": "plutus_data",
+      "path": "choice[4:bytes]",
+      "obligation": {"tag": "WrongReference", "contents": "bounded_bytes"},
+      "kind": "incorrect-specification",
+      "samples": [
+        "plutus_data/manual-valid/bytes-chunks-above-the-size-limit"
+      ],
+      "reason": "The decoder holds each chunk of a byte string to 64 bytes and does not add the chunks up, so a byte string of any length is read when it is written in chunks of at most 64 bytes."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "plutus_data",
+      "path": "choice[3:(int/tag2/tag3)]",
+      "obligation": {"tag": "AcceptBranch"},
+      "samples": [
+        "plutus_data/manual-invalid/bignum-chunk-above-the-size-limit",
+        "plutus_data/manual-invalid/negative-bignum-chunk-above-the-size-limit"
+      ],
+      "reason": "The decoder holds each chunk of the payload of a bignum to 64 bytes inside plutus data, and refuses a chunk of 65 bytes, but the specification states no size for it here."
+    },
+    {
+      "kind": "unstated-constraint",
+      "rule": "plutus_data",
+      "path": "choice[3:(int/tag2/tag3)]",
+      "obligation": {"tag": "AcceptBranch"},
+      "samples": [
+        "plutus_data/manual-invalid/bignum-with-a-wide-tag",
+        "plutus_data/manual-invalid/bignum-with-a-widest-tag",
+        "plutus_data/manual-invalid/negative-bignum-with-a-wide-tag",
+        "plutus_data/manual-invalid/negative-bignum-with-a-widest-tag"
+      ],
+      "reason": "The decoder reads the tag of a bignum inside plutus data as the shortest head of the number 2 or 3, and refuses the same tag written in a longer head. The specification states no such rule. The tag of a constructor can be written in a longer head."
     }
   ]
 }

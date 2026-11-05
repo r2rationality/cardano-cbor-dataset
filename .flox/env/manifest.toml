@@ -12,23 +12,8 @@ hoogle.priority = 6
 pkg-config.pkg-path = "pkg-config"
 zlib.pkg-path = "zlib"
 zlib.outputs = "all"
-# Download and check the official Tricorder binary in the activation hook.
-curl.pkg-path = "curl"
-gzip.pkg-path = "gzip"
-coreutils.pkg-path = "coreutils"
-gmp.pkg-path = "gmp"
-ncurses.pkg-path = "ncurses"
-libiconv.pkg-path = "libiconv"
-darwin-libffi.pkg-path = "darwin.libffi"
-darwin-libffi.systems = ["aarch64-darwin"]
-libffi.pkg-path = "libffi"
-libffi.systems = ["x86_64-linux"]
-glibc.pkg-path = "glibc"
-glibc.systems = ["x86_64-linux"]
-patchelf.pkg-path = "patchelf"
-patchelf.systems = ["x86_64-linux"]
-numactl.pkg-path = "numactl"
-numactl.systems = ["x86_64-linux"]
+# Tricorder, built from its own flake. Its binary cache is tweag-tricorder.cachix.org.
+tricorder.flake = "github:tweag/tricorder#tricorder"
 ormolu.pkg-path = "ormolu"
 hspec-discover.pkg-path = "haskellPackages.hspec-discover"
 hspec-discover.priority = 6
@@ -41,8 +26,7 @@ hlint.pkg-path = "hlint"
 
 [hook]
 on-activate = '''
-  bash "$FLOX_ENV_PROJECT/scripts/setup-tricorder" || return 1
-  export PATH="$FLOX_ENV_PROJECT/scripts:$FLOX_ENV_CACHE/tricorder-0.4.1.1-runtime-v1/bin:$PATH"
+  export PATH="$FLOX_ENV_PROJECT/scripts:$PATH"
 
   # Outside nix-shell, the compiler wrapper needs the platform-specific target.
   # Apply it to dependency builds as well as the project's own link steps.
@@ -63,5 +47,4 @@ on-activate = '''
 '''
 
 [options]
-# These systems have official Tricorder release binaries.
 systems = ["aarch64-darwin", "x86_64-linux"]

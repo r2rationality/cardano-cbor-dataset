@@ -5,20 +5,19 @@ import Codec.CBOR.Cuddle.CDDL.CTree (CTreeRoot (..))
 import Codec.CBOR.Cuddle.CDDL.Custom.Core (RuleTerm (..))
 import Codec.CBOR.Cuddle.CDDL.Custom.Validator (CustomValidatorResult (..), runValidator)
 import Codec.CBOR.Cuddle.IndexMappable (mapIndex)
-import Codec.CBOR.Read qualified as CBOR
-import Codec.CBOR.Term (Term (..))
+import Coverage.Obligations.BytesLayout
+import Coverage.Obligations.ByronAddress
+import Coverage.Obligations.Cbor
 import Coverage.Obligations.CborTerm
 import Coverage.Obligations.Obligation
-import Coverage.Obligations.Obligations (ruleObligations)
+import Coverage.Obligations.Obligations (ruleObligations, withLayouts)
 import Coverage.Obligations.Shape
 import Coverage.Obligations.SpecRule (HuddleSpec)
 import Coverage.Obligations.Trail (stepsBelowPrefix)
 import Data.ByteString qualified as BS
-import Data.ByteString.Lazy qualified as LBS
 import Data.Map.Lazy qualified as LazyMap
 import Data.Map.Strict qualified as Map
 import Data.Text.Encoding qualified as TE
-import Data.Text.Lazy.Encoding qualified as TLE
 import Generation.SampleType (SampleCategory (..))
 
 -- | What checking a term needs: the specification, and the obligations of each rule.
@@ -31,14 +30,14 @@ data TermChecker = TermChecker
 -- | A term checker for this specification.
 newTermChecker :: HuddleSpec -> TermChecker
 newTermChecker specification@(CTreeRoot rules) =
-  TermChecker specification (LazyMap.map (ruleObligations specification) rules)
+  TermChecker specification (LazyMap.mapWithKey (\name rule -> withLayouts name (ruleObligations specification rule)) rules)
 
 -- | The obligations of a rule, none for a name that is not a rule.
 obligationsOf :: TermChecker -> Name -> [Obligation]
 obligationsOf checker name = Map.findWithDefault [] name (checkerObligations checker)
 
 -- | Return True if the term meets all obligations of the rule: it meets none of the obligations to reject.
-meetsObligations :: TermChecker -> Name -> Term -> Bool
+meetsObligations :: TermChecker -> Name -> Cbor -> Bool
 meetsObligations checker name term = not (any breaks obligations)
   where
     obligations = obligationsOf checker name
@@ -48,7 +47,7 @@ meetsObligations checker name term = not (any breaks obligations)
 -- | Whether a sample meets an obligation.
 --   If the obligation is about a validator failing, the sample meets it only if it fails as a whole and not due to any entry alone.
 --   Otherwise check if the sample term satisfies the obligation.
-answerFor :: TermChecker -> [Obligation] -> Obligation -> Term -> Maybe Bool
+answerFor :: TermChecker -> [Obligation] -> Obligation -> Cbor -> Maybe Bool
 answerFor checker obligations obligation term = case obligationKind obligation of
   ValidatorFails -> (&& not breaksSomethingElse) <$> failsOnlyAsAWhole (checkerSpecification checker) obligation term
   _ -> satisfies checker obligation term
@@ -67,13 +66,13 @@ answerFor checker obligations obligation term = case obligationKind obligation o
 --  For a 'Reject' obligation that means breaking the constraint.
 --  For an 'Accept' obligation, exhibiting the permitted form.
 --  Return Nothing if the answer is "cannot decide".
-satisfies :: TermChecker -> Obligation -> Term -> Maybe Bool
+satisfies :: TermChecker -> Obligation -> Cbor -> Maybe Bool
 satisfies checker obligation root =
   atAnyOccurrence (satisfiedAt checker obligation) (followPath (obligationSubject obligation) root)
 
 -- | The answer for a path that reaches several occurrences of a repeated entry: met when one occurrence meets the
 -- obligation, unmet when one occurrence does not and none does, and undecided otherwise.
-atAnyOccurrence :: (Term -> Maybe Bool) -> [Term] -> Maybe Bool
+atAnyOccurrence :: (Cbor -> Maybe Bool) -> [Cbor] -> Maybe Bool
 atAnyOccurrence answer subjects
   | Just True `elem` answers = Just True
   | Just False `elem` answers = Just False
@@ -82,7 +81,7 @@ atAnyOccurrence answer subjects
     answers = map answer subjects
 
 -- | Whether the value that the path of the obligation reaches satisfies the obligation.
-satisfiedAt :: TermChecker -> Obligation -> Term -> Maybe Bool
+satisfiedAt :: TermChecker -> Obligation -> Cbor -> Maybe Bool
 satisfiedAt checker obligation subject =
   case obligationKind obligation of
     TooFew lower -> (\count -> fromIntegral count < lower) <$> entryCount subject
@@ -107,10 +106,13 @@ satisfiedAt checker obligation subject =
     WrongReference name -> Just (not (meetsObligations checker name subject))
     AcceptType primitive -> matchesPrimitive primitive subject
     WrongType primitive -> not <$> matchesPrimitive primitive subject
+    NegativeInteger -> (< 0) <$> termInteger subject
     AcceptLiteral value -> matchesLiteral value subject
     WrongLiteral value -> not <$> matchesLiteral value subject
     AcceptDefinite -> not <$> isIndefinite subject
     AcceptIndefinite -> isIndefinite subject
+    AcceptWideHead -> hasWideHead subject
+    AcceptWidestHead -> hasWidestHead subject
     -- Resolving the path already required the term to fit this alternative, so
     -- reaching here is the proof that the branch was taken.
     AcceptBranch -> Just True
@@ -122,6 +124,7 @@ satisfiedAt checker obligation subject =
     NoKeyMatches keys -> mapHasForeignKey keys subject
     DuplicateKey -> mapHasDuplicateKey subject
     NoTagMatches tags -> Just (maybe False (`notElem` tags) (termTag subject))
+    InsideTagGap low high -> Just (maybe False (\tag -> tag > low && tag < high) (termTag subject))
     NoReferenceMatches shape names -> Just (shapeFits shape subject && not (any (\name -> meetsObligations checker name subject) names))
     NoDiscriminantMatches values ->
       Just (maybe False (`notElem` values) (leadingUnsigned subject))
@@ -155,11 +158,25 @@ satisfiedAt checker obligation subject =
     AboveRange high -> (> high) <$> termInteger subject
     AcceptCbor -> isJust <$> embeddedContents subject
     ViolateCbor -> isNothing <$> embeddedContents subject
+    AcceptLayout name -> withLayout name subject (\reading -> fitsLayout reading)
+    AcceptLayoutMaximum name field ->
+      withLayout name subject (\reading -> fitsLayout reading && any (\number -> numberName number == field && numberAtMaximum number) (readingNumbers reading))
+    ViolateLayoutMaximum name field ->
+      withLayout name subject $ \reading ->
+        BS.null (readingRest reading)
+          && and [numberFits number == (numberName number /= field) | number <- readingNumbers reading]
+    ViolateLayoutEnd name ->
+      withLayout name subject (\reading -> all numberFits (readingNumbers reading) && not (BS.null (readingRest reading)))
+    AcceptLayoutCase name feature -> withByron name subject $ \reading ->
+      any (\(text, holds) -> text == feature && holds reading) byronAcceptances
+    ViolateLayoutCase name fault -> withByron name subject $ \reading ->
+      any (\(text, wanted) -> text == fault && readingFaults reading == [wanted]) byronViolations
+    TrailingAfterCbor -> (\bytes -> either (const False) ((< BS.length bytes) . snd) (readCborPrefix bytes)) <$> embeddedBytes subject
     WrongEmbedded name -> maybe False (not . meetsObligations checker name) <$> embeddedContents subject
 
 -- | Check if the elements of an array term fit the given shapes.
 -- Return 'False' if the term is not an array or the lengths do not match.
-elementsFit :: [Shape] -> Term -> Bool
+elementsFit :: [Shape] -> Cbor -> Bool
 elementsFit shapes term = case arrayEntries term of
   Just entries | length entries == length shapes -> and (zipWith shapeFits shapes entries)
   _ -> False
@@ -167,38 +184,53 @@ elementsFit shapes term = case arrayEntries term of
 -- | The length a @.size@ control measures: the bytes of a byte string, and the bytes of the UTF-8 encoding of a text
 -- string, not its characters. A number has no length, and @uint .size n@ is a ceiling on the value rather than a
 -- length, so it is measured by 'termInteger' instead.
-termSize :: Term -> Maybe Integer
+termSize :: Cbor -> Maybe Integer
 termSize = \case
-  TBytes bytes -> Just (fromIntegral (BS.length bytes))
-  TBytesI bytes -> Just (fromIntegral (LBS.length bytes))
-  TString text -> Just (fromIntegral (BS.length (TE.encodeUtf8 text)))
-  TStringI text -> Just (fromIntegral (LBS.length (TLE.encodeUtf8 text)))
+  CBytes _ bytes -> Just (fromIntegral (BS.length bytes))
+  CText _ text -> Just (fromIntegral (BS.length (TE.encodeUtf8 text)))
+  _ -> Nothing
+
+-- | Whether the bytes of a byte string, read as the named layout, meet a test. 'Nothing' for a term that is not a byte
+-- string, and 'False' for bytes that do not start like the layout.
+withLayout :: Text -> Cbor -> (Reading -> Bool) -> Maybe Bool
+withLayout name subject test = do
+  bytes <- embeddedBytes subject
+  pure (any (\layout -> maybe False test (readLayout layout bytes)) [layout | layout <- knownLayouts, layoutName layout == name])
+
+-- | Whether the bytes of a byte string, read as a Byron address, meet a test. 'Nothing' for a term that is not a byte
+-- string, and 'False' for bytes that are not a Byron address at all.
+withByron :: Text -> Cbor -> (ByronReading -> Bool) -> Maybe Bool
+withByron name subject test
+  | name /= byronName = Nothing
+  | otherwise = do
+      bytes <- embeddedBytes subject
+      pure (maybe False test (readByron bytes))
+
+-- | The bytes of a byte string, and 'Nothing' for a term that is not one.
+embeddedBytes :: Cbor -> Maybe BS.ByteString
+embeddedBytes = \case
+  CBytes _ bytes -> Just bytes
   _ -> Nothing
 
 -- | The value that a byte string holds, which is what @.cbor@ asks for: 'Just' 'Nothing' when its contents do not
 -- decode as one CBOR value, and 'Nothing' for a term that is not a byte string.
-embeddedContents :: Term -> Maybe (Maybe Term)
+embeddedContents :: Cbor -> Maybe (Maybe Cbor)
 embeddedContents = \case
-  TBytes bytes -> Just (decodeAll (LBS.fromStrict bytes))
-  TBytesI bytes -> Just (decodeAll bytes)
+  CBytes _ bytes -> Just (rightToMaybe (readCbor bytes))
   _ -> Nothing
-  where
-    decodeAll lazy = case CBOR.deserialiseFromBytes decodeTaggedTerm lazy of
-      Right (rest, term) | LBS.null rest -> Just term
-      _ -> Nothing
 
 -- | Check if a size is within the given bounds (inclusive).
 within :: Integer -> Integer -> Integer -> Bool
 within low high size = size >= low && size <= high
 
-isTagged :: Term -> Word64 -> Maybe Bool
+isTagged :: Cbor -> Word64 -> Maybe Bool
 isTagged subject wanted = case subject of
-  TTagged actual _ -> Just (actual == wanted)
+  CTag _ actual _ -> Just (actual == wanted)
   _ -> Nothing
 
-isNotTagged :: Term -> Word64 -> Maybe Bool
+isNotTagged :: Cbor -> Word64 -> Maybe Bool
 isNotTagged subject wanted = case subject of
-  TTagged actual _ -> Just (actual /= wanted)
+  CTag _ actual _ -> Just (actual /= wanted)
   _ -> Nothing
 
 -- | Whether the custom validator of the obligation fails on the value at its subject because of a rule about the value
@@ -207,7 +239,7 @@ isNotTagged subject wanted = case subject of
 -- A validator also checks the entries under it, so it fails on a set with one malformed entry too. Each entry alone
 -- must pass it: an entry alone cannot break a rule about how entries relate, such as uniqueness, so a failure there
 -- comes from the entry itself.
-failsOnlyAsAWhole :: HuddleSpec -> Obligation -> Term -> Maybe Bool
+failsOnlyAsAWhole :: HuddleSpec -> Obligation -> Cbor -> Maybe Bool
 failsOnlyAsAWhole specification obligation root =
   atAnyOccurrence failsAt (followPath (obligationSubject obligation) root)
   where
@@ -216,19 +248,17 @@ failsOnlyAsAWhole specification obligation root =
       pure (not passes && all ((== Just True) . passesValidator specification obligation) (eachEntryAlone subject))
 
 -- | Whether a value passes the custom validator that the obligation carries, or 'Nothing' when it carries none.
-passesValidator :: HuddleSpec -> Obligation -> Term -> Maybe Bool
+passesValidator :: HuddleSpec -> Obligation -> Cbor -> Maybe Bool
 passesValidator specification obligation term = do
   CustomValidator validator <- obligationValidator obligation
-  pure $ case runValidator (validator (SingleTerm term)) (mapIndex specification) of
+  pure $ case runValidator (validator (SingleTerm (toTerm term))) (mapIndex specification) of
     CustomValidatorSuccess -> True
     CustomValidatorFailure _ -> False
 
 -- | The same container with only one of its entries, for each entry. Empty for a value that is not a container.
-eachEntryAlone :: Term -> [Term]
+eachEntryAlone :: Cbor -> [Cbor]
 eachEntryAlone = \case
-  TList entries -> [TList [entry] | entry <- entries]
-  TListI entries -> [TListI [entry] | entry <- entries]
-  TMap pairs -> [TMap [pair] | pair <- pairs]
-  TMapI pairs -> [TMapI [pair] | pair <- pairs]
-  TTagged tag inner -> TTagged tag <$> eachEntryAlone inner
+  CArray len entries -> [CArray len [entry] | entry <- entries]
+  CMap len pairs -> [CMap len [pair] | pair <- pairs]
+  CTag width tag inner -> CTag width tag <$> eachEntryAlone inner
   _ -> []

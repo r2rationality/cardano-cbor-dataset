@@ -75,6 +75,10 @@ data ObligationKind
     AcceptTag Word64
   | -- | The primitive type the specification names.
     AcceptType Primitive
+  | -- | This value must appear with a head wider than it needs (see [Coverage.Obligations.Cbor])
+    AcceptWideHead
+  | -- | This value must appear with the 8-byte head, for a number that fits in fewer bytes (see [Coverage.Obligations.Cbor])
+    AcceptWidestHead
   | -- | A value below the lower bound of the range.
     BelowRange Integer
   | -- | A map carrying the same key twice, which has to be refused.
@@ -83,6 +87,8 @@ data ObligationKind
     InsideRange Integer Integer
   | -- | A value strictly between two alternatives of a choice that are numbers, which no alternative admits.
     InsideGap Integer Integer
+  | -- | A tag strictly between two runs of tags that the alternatives of a choice name, which no alternative names.
+    InsideTagGap Word64 Word64
   | -- | A map without the required key.
     MissingRequiredKey LiteralValue
   | -- | A value without a tag, where the rule names one.
@@ -111,6 +117,21 @@ data ObligationKind
     ValidatorSucceeds
   | -- | A byte string whose contents do not decode as CBOR.
     ViolateCbor
+  | -- | Bytes laid out as the named layout, with every number inside the size the decoder holds it in.
+    AcceptLayout Text
+  | -- | Bytes laid out as the named layout, where the named number has the largest value that the decoder holds.
+    AcceptLayoutMaximum Text Text
+  | -- | Bytes laid out as the named layout, where the named number is too large for the decoder.
+    ViolateLayoutMaximum Text Text
+  | -- | Bytes laid out as the named layout, and then more bytes.
+    ViolateLayoutEnd Text
+  | -- | Bytes laid out as the named layout, with the feature that the second text says.
+    AcceptLayoutCase Text Text
+  | -- | Bytes laid out as the named layout, with exactly the one fault that the second text says.
+    ViolateLayoutCase Text Text
+  | -- | A byte string that holds one valid CBOR value and then more bytes. A decoder that reads the first value and
+    -- stops accepts it, and the ledger refuses it.
+    TrailingAfterCbor
   | -- | @uint .size 4@ is not a length but a ceiling: the value has to fit in four bytes.
     ViolateHighBound Integer
   | -- | A value above the size that the .size control admits.
@@ -128,6 +149,9 @@ data ObligationKind
     WrongReference Name
   | -- | A tag other than the one the rule names.
     WrongTag Word64
+  | -- | A negative integer where the specification says @uint@. It is the nearest value that is not a @uint@, and a
+    -- decoder that reads a plain integer and checks the sign late can accept it.
+    NegativeInteger
   | -- | A value of another primitive type than the one the specification names.
     WrongType Primitive
   deriving (Eq, Show, Generic)
@@ -165,11 +189,14 @@ categoryFor = \case
   AcceptSize _ _ -> Accept
   AcceptTag _ -> Accept
   AcceptType _ -> Accept
+  AcceptWideHead -> Accept
+  AcceptWidestHead -> Accept
   BelowRange _ -> Reject
   MissingTag _ -> Reject
   DuplicateKey -> Reject
   InsideRange _ _ -> Accept
   InsideGap _ _ -> Reject
+  InsideTagGap _ _ -> Reject
   MissingRequiredKey _ -> Reject
   NoBranchMatches _ -> Reject
   NoDiscriminantMatches _ -> Reject
@@ -182,6 +209,13 @@ categoryFor = \case
   ValidatorFails -> Reject
   ValidatorSucceeds -> Accept
   ViolateCbor -> Reject
+  AcceptLayout _ -> Accept
+  AcceptLayoutMaximum _ _ -> Accept
+  ViolateLayoutMaximum _ _ -> Reject
+  ViolateLayoutEnd _ -> Reject
+  AcceptLayoutCase _ _ -> Accept
+  ViolateLayoutCase _ _ -> Reject
+  TrailingAfterCbor -> Reject
   ViolateHighBound _ -> Reject
   ViolateSizeAbove _ -> Reject
   ViolateSizeBelow _ -> Reject
@@ -190,6 +224,7 @@ categoryFor = \case
   WrongLiteral _ -> Reject
   WrongReference _ -> Reject
   WrongTag _ -> Reject
+  NegativeInteger -> Reject
   WrongType _ -> Reject
 
 -- | Create one obligation of a rule, at the end of a trail down the rule. The obligation is stated and checked at the same
@@ -214,6 +249,8 @@ deniesBranchShape rules shape alternative = \case
   -- An alternative that is a bare primitive is found by being one, so a
   -- term of another type is a term of a different alternative.
   WrongType primitive -> shape == ShapePrimitive primitive
+  -- A negative integer is a term of another alternative, as a term of another type is.
+  NegativeInteger -> shape == ShapePrimitive PrimUInt
   WrongTag wanted -> shape == ShapeTag wanted
   MissingTag wanted -> shape == ShapeTag wanted
   -- An alternative that is one value is found by that value, so any sample
@@ -298,6 +335,13 @@ renderKind = describe
       ViolateSizeAbove high -> "a size above " <> show high
       AcceptCbor -> "bytes whose contents decode as CBOR"
       ViolateCbor -> "bytes whose contents do not decode as CBOR"
+      AcceptLayout name -> "bytes laid out as a " <> name
+      AcceptLayoutMaximum name field -> "a " <> name <> " with the " <> field <> " at the largest value it holds"
+      ViolateLayoutMaximum name field -> "a " <> name <> " with a " <> field <> " too large to hold"
+      ViolateLayoutEnd name -> "a " <> name <> " followed by more bytes"
+      AcceptLayoutCase name feature -> "a " <> name <> " that " <> feature
+      ViolateLayoutCase name fault -> "a " <> name <> " that " <> fault
+      TrailingAfterCbor -> "bytes whose contents are a CBOR value followed by more bytes"
       WrongEmbedded name -> "bytes whose contents are not a valid " <> unName name
       ViolateHighBound high -> "a value above " <> show high
       AcceptBranch -> "a sample taking this alternative"
@@ -321,6 +365,7 @@ renderKind = describe
       AcceptBoundary value -> "the value " <> show value <> ", at the end of what is admitted"
       InsideRange low high -> "a value strictly between " <> show low <> " and " <> show high
       InsideGap low high -> "a value strictly between " <> show low <> " and " <> show high <> ", which no alternative admits"
+      InsideTagGap low high -> "a tag strictly between " <> show low <> " and " <> show high <> ", which no alternative names"
       BelowRange low -> "a value below " <> show low
       AboveRange high -> "a value above " <> show high
       AcceptReference name -> "a valid " <> unName name <> " at an entry that may be absent"
@@ -328,6 +373,7 @@ renderKind = describe
       WrongReference name -> "a value that is not a valid " <> unName name
       AcceptType primitive -> "a value of type " <> renderPrimitive primitive
       WrongType primitive -> "a value that is not " <> renderPrimitive primitive
+      NegativeInteger -> "a negative integer"
       AcceptLiteral value -> "the value " <> renderLiteral value
       WrongLiteral value -> "a value other than " <> renderLiteral value
       AcceptTag number -> "the tag " <> show number
@@ -335,6 +381,8 @@ renderKind = describe
       MissingTag number -> "a value without the tag " <> show number
       AcceptDefinite -> "this container in definite form"
       AcceptIndefinite -> "this container in indefinite form"
+      AcceptWideHead -> "this value with a head wider than it needs"
+      AcceptWidestHead -> "this value with an 8-byte head"
       ValidatorSucceeds -> "a custom validator succeeds"
       ValidatorFails -> "a custom validator fails"
 

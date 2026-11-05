@@ -2,11 +2,8 @@ module Coverage.Report.Samples where
 
 import Base.Paths
 import Codec.CBOR.Cuddle.CDDL (Name (..))
-import Codec.CBOR.Read qualified as CBOR
-import Codec.CBOR.Term (Term)
-import Coverage.Obligations.CborTerm (decodeTaggedTerm)
+import Coverage.Obligations.Cbor (Cbor, readCbor)
 import Data.ByteString qualified as BS
-import Data.ByteString.Lazy qualified as LBS
 import Data.Traversable (for)
 import Generation.Dataset
 import Generation.SampleType
@@ -16,8 +13,8 @@ import Path
 data Sample = Sample
   { -- | The rule of the sample, and its name in the rule, for example coin/valid/00001-39ba9bf686418065
     sampleKey :: SampleKey,
-    -- | The decoded sample
-    sampleTerm :: Term
+    -- | The decoded sample, with how each head spells its length or its number
+    sampleCbor :: Cbor
   }
   deriving (Eq, Show)
 
@@ -37,17 +34,13 @@ isRejected = (== Reject) . sampleCategory . sampleType
 decodeSample :: Path Abs File -> SampleKey -> IO Sample
 decodeSample path key = do
   bytes <- readBytes path
-  case decodeCbor bytes of
+  case readSample key bytes of
     Left message -> abort $ "the sample '" <> display path <> "' is not CBOR: " <> message
-    Right term -> pure Sample {sampleKey = key, sampleTerm = term}
+    Right sample -> pure sample
 
--- | The one CBOR value these bytes hold.
-decodeCbor :: BS.ByteString -> Either Text Term
-decodeCbor bytes = case CBOR.deserialiseFromBytes decodeTaggedTerm (LBS.fromStrict bytes) of
-  Left failure -> Left (show failure)
-  Right (rest, term)
-    | LBS.null rest -> Right term
-    | otherwise -> Left "trailing bytes after a complete value"
+-- | The sample that these bytes hold.
+readSample :: SampleKey -> BS.ByteString -> Either Text Sample
+readSample key bytes = Sample key <$> readCbor bytes
 
 -- | Load the samples of a rule from the rule directory. A directory whose name is not a sample type, such as the
 -- configuration a corpus carries, holds no samples.

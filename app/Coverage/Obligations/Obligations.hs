@@ -6,6 +6,8 @@ import Codec.CBOR.Cuddle.CDDL.CTree qualified as CTree
 import Codec.CBOR.Cuddle.CDDL.CtlOp (CtlOp)
 import Codec.CBOR.Cuddle.CDDL.Custom.Validator (TermValidator)
 import Codec.CBOR.Cuddle.CDDL.Resolve (XXCTree (..))
+import Coverage.Obligations.BytesLayout
+import Coverage.Obligations.ByronAddress
 import Coverage.Obligations.LiteralValue
 import Coverage.Obligations.Obligation
 import Coverage.Obligations.Primitive
@@ -25,6 +27,35 @@ import Universum ((...))
 -- Eventually, obligations are deduplicated to ensure each unique obligation is only listed once.
 ruleObligations :: HuddleSpec -> RuleNode -> [Obligation]
 ruleObligations (CTreeRoot rules) = deduplicateObligations . obligationsUnder rules startTrail
+
+-- | The obligations of a rule, with those of the layouts that the decoder expects inside its bytes.
+--
+-- The specification states such a rule as plain bytes, so the layouts are added where the rule states that: at each
+-- place that asks for bytes.
+withLayouts :: Name -> [Obligation] -> [Obligation]
+withLayouts name obligations =
+  obligations
+    <> concatMap (layoutObligations bytesPaths) (layoutsOf name)
+    <> [obligationAt path kind | name == Name "address", path <- bytesPaths, kind <- byronKinds]
+  where
+    byronKinds =
+      [AcceptLayoutCase byronName feature | (feature, _) <- byronAcceptances]
+        <> [ViolateLayoutCase byronName fault | (fault, _) <- byronViolations]
+    bytesPaths = ordNub [obligationPath o | o <- obligations, obligationKind o == AcceptType PrimBytes]
+
+-- | What a decoder expects of the bytes of a layout: the layout itself, each number at its largest value and one past
+-- it, and no byte after the last field.
+layoutObligations :: [Trail Absolute] -> BytesLayout -> [Obligation]
+layoutObligations paths layout =
+  concat
+    [ obligationAt path <$> ([AcceptLayout name] <> concatMap numberObligations (layoutFields layout) <> [ViolateLayoutEnd name])
+    | path <- paths
+    ]
+  where
+    name = layoutName layout
+    numberObligations = \case
+      Number field _ -> [AcceptLayoutMaximum name field, ViolateLayoutMaximum name field]
+      Fixed _ -> []
 
 -- | The obligations of an element of a rule, and of every element inside it, at every depth.
 --
@@ -57,6 +88,8 @@ arrayObligations rules path entries =
     <> containerLength rules path entries
     <> at AcceptDefinite
     <> at AcceptIndefinite
+    <> at AcceptWideHead
+    <> at AcceptWidestHead
   where
     at = pure ... obligationAt path
 
@@ -77,6 +110,8 @@ mapObligations rules path entries =
     <> containerLength rules path entries
     <> at AcceptDefinite
     <> at AcceptIndefinite
+    <> at AcceptWideHead
+    <> at AcceptWidestHead
     <> at DuplicateKey
     <> [ obligation
        | Just keys <- [traverse entryKey entries],
@@ -129,6 +164,7 @@ choiceObligations :: Map Name RuleNode -> Trail Absolute -> [RuleNode] -> [Oblig
 choiceObligations rules path alternatives =
   at (NoBranchMatches shapes)
     <> [o | not (null tags), o <- at (NoTagMatches tags)]
+    <> tagGaps path tags
     <> [o | not (null discriminants), o <- at (NoDiscriminantMatches discriminants)]
     <> elementObligations rules path alternatives shapes
     <> sameShapeReferences
@@ -194,6 +230,21 @@ elementObligations rules path alternatives shapes = case overlapping of
     -- Past this many combinations, each one is a separate sample to generate, and the obligations would grow faster
     -- than a corpus can answer them.
     widestUsefulCombination = 12
+
+-- | The tags between two runs of tags that the alternatives of a choice name, which no alternative names.
+--
+-- A tag in such a gap is where an off-by-one in a range check shows: a decoder that reads @121 .. 127@ and @1280 .. 1400@
+-- as one range would accept it. Tags that follow each other leave no gap, and nothing is stated below the lowest tag or
+-- above the highest one, since no alternative marks where those stop.
+tagGaps :: Trail Absolute -> [Word64] -> [Obligation]
+tagGaps path tags =
+  concat [at (InsideTagGap end start) | ((_, end), (start, _)) <- zip runs (drop 1 runs), start - end >= 2]
+  where
+    at = pure ... obligationAt path
+    -- The runs of tags that follow each other, each as its first and its last tag.
+    runs = reverse (foldl' extend [] (ordNub (sort tags)))
+    extend ((start, end) : earlier) tag | tag == end + 1 = (start, tag) : earlier
+    extend earlier tag = (tag, tag) : earlier
 
 -- | The numbers that no alternative of a choice admits, when some alternatives are ranges or numbers.
 --
@@ -411,6 +462,8 @@ tagObligations path number =
         -- The decoder folds a bignum that fits into a plain integer, so an untagged integer can be a valid bignum.
         <> [o | not (encodingFixesPayload number), o <- at (MissingTag number)]
   ]
+    <> at AcceptWideHead
+    <> at AcceptWidestHead
   where
     at = pure ... obligationAt path
 
@@ -445,6 +498,7 @@ controlObligations path op target controller
   | operator == "Cbor" =
       at AcceptCbor
         <> at ViolateCbor
+        <> at TrailingAfterCbor
         <> case controller of
           CTree.CTreeE (MRuleRef ref) -> at (WrongEmbedded ref)
           _ -> []
@@ -489,7 +543,9 @@ validatorObligations path validator =
 -- integer at all.
 rangeObligations :: Trail Absolute -> (Integer, Integer) -> [Obligation]
 rangeObligations path (low, high) =
-  at (AcceptBoundary low)
+  at AcceptWideHead
+    <> at AcceptWidestHead
+    <> at (AcceptBoundary low)
     <> at (AcceptBoundary high)
     <> [o | high - low >= 2, o <- at (InsideRange low high)]
     <> at (BelowRange low)
@@ -505,6 +561,7 @@ valueObligations path value =
   | not (choiceChoseValue value path),
     obligation <- at (AcceptLiteral value) <> at (WrongLiteral value)
   ]
+    <> [obligation | literalHasHead value, obligation <- at AcceptWideHead <> at AcceptWidestHead]
   where
     at = pure ... obligationAt path
 
@@ -513,6 +570,8 @@ primitiveObligations :: Trail Absolute -> Primitive -> [Obligation]
 primitiveObligations path primitive =
   at (AcceptType primitive)
     <> at (WrongType primitive)
+    <> [obligation | primitive == PrimUInt, obligation <- at NegativeInteger]
+    <> [obligation | hasHead primitive, obligation <- at AcceptWideHead <> at AcceptWidestHead]
     <> concat
       [ at (AcceptBoundary bound)
       | not (underAControl path),
@@ -544,8 +603,9 @@ impliedByArity rules entries path obligation = case obligationKind obligation of
 statesALength :: Map Name RuleNode -> [RuleNode] -> Bool
 statesALength rules entries = any (statesAnArity . obligationKind) (containerLength rules startTrail entries)
   where
+    -- An empty container carries none of its entries, so it says nothing about them.
     statesAnArity = \case
-      AcceptArity _ -> True
+      AcceptArity size -> size > 0
       _ -> False
 
 -- | The entries of a container, each with the step to its position in the bytes, not in the specification.
@@ -593,6 +653,7 @@ splicedPositions rules entries = case span fixed leaves of
 --  A length under the minimum and a length over the maximum must be rejected.
 --  Each length in between must be accepted, when there are two to four of them.
 --  A container with a repeated entry must also accept a length that repeats it.
+--  A container that may be empty must accept the empty one, even where its lengths are too many to ask for each.
 --  An occurrence indicator bounds only its own entry, so only this sum bounds the whole container.
 containerLength :: Map Name RuleNode -> Trail Absolute -> [RuleNode] -> [Obligation]
 containerLength rules path entries = case totalWidth rules entries of
@@ -608,6 +669,7 @@ containerLength rules path entries = case totalWidth rules entries of
       size <- lengths,
       obligation <- at (AcceptArity (fromIntegral size))
     ]
+      <> [obligation | low == 0, maybe True (> 0) high, not (zeroAsked low high), obligation <- at (AcceptArity 0)]
       <> [obligation | low > 0, obligation <- at (TooFew low)]
       <> [obligation | Just top <- [high], obligation <- at (TooMany top)]
       <> [ obligation
@@ -618,6 +680,10 @@ containerLength rules path entries = case totalWidth rules entries of
     at = pure ... obligationAt path
     -- how many distinct lengths a container may have before its length stops being the interesting thing about it.
     widestUsefulRange = 4
+    -- Whether the lengths asked for above already include the empty one.
+    zeroAsked low high = case high of
+      Just top -> let count = length [low .. top] in count > 1 && count <= widestUsefulRange
+      Nothing -> False
 
 -- | The obligations of a required map entry: a valid sample has its key, and a sample without its key is rejected.
 --

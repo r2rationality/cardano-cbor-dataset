@@ -66,4 +66,4 @@ tricorder:
 
 # Print the latest Tricorder test results without the ui.
 test-results:
-    flox activate -d . -- scripts/tricorder test-results
+    flox activate -d . -- scripts/tricorder test
