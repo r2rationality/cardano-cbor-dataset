@@ -1,7 +1,6 @@
 {
-  "dataset_commit": "f7b3b4e7f8cbf9b585f82153d60b3f6065a5b513",
-  "era": "dijkstra",
-  "generated_at": 1793270598279,
+  "dataset_commit": "95e9e7c296ca1b641c8d99af2ab7c286a90caebf",
+  "generated_at": 1793843550206,
   "implementation_commit": "6176e413b2be9880c23cedbdaa899f9752693b22",
   "protocol_version": "12.0",
   "results": {
