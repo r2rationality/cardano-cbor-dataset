@@ -1,6 +1,6 @@
 {
-  "dataset_commit": "e8304f8e14ef172e52a20b9f6c7478d4facdda78",
-  "generated_at": 1793902909732,
+  "dataset_commit": "0032b23369961c05edaa341b5408c23beb9ee30f",
+  "generated_at": 1793964229584,
   "implementation_commit": "6176e413b2be9880c23cedbdaa899f9752693b22",
   "protocol_version": "11.0",
   "results": {
@@ -29473,6 +29473,8 @@
     "nonnegative_interval/manual-invalid/negative-numerator.input.cbor": true,
     "nonnegative_interval/manual-valid/0001-zero-numerator.input.cbor": true,
     "nonnegative_interval/manual-valid/0002-max-numerator.input.cbor": true,
+    "nonnegative_interval/manual-valid/bignum-numerator-reduces-in-range.input.cbor": true,
+    "nonnegative_interval/manual-valid/bignum-ratio-reduces-in-range.input.cbor": true,
     "nonnegative_interval/manual-valid/denominator-max.input.cbor": true,
     "nonnegative_interval/manual-valid/wide-heads-1.input.cbor": true,
     "nonnegative_interval/manual-valid/wide-heads-2.input.cbor": true,
@@ -39831,7 +39833,9 @@
     "unit_interval/manual-invalid/denominator-zero.input.cbor": true,
     "unit_interval/manual-invalid/negative-denominator.input.cbor": true,
     "unit_interval/manual-invalid/negative-numerator.input.cbor": true,
+    "unit_interval/manual-valid/bignum-ratio-reduces-in-range.input.cbor": true,
     "unit_interval/manual-valid/both-max-word64.input.cbor": true,
+    "unit_interval/manual-valid/negative-ratio-reduces-in-range.input.cbor": true,
     "unit_interval/manual-valid/numerator-zero.input.cbor": true,
     "unit_interval/manual-valid/wide-heads-1.input.cbor": true,
     "unit_interval/manual-valid/widest-heads-1.input.cbor": true,
