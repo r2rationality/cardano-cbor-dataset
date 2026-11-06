@@ -444,7 +444,7 @@
     }
   ],
   "era": "conway",
-  "manual": 1871,
+  "manual": 1875,
   "rules": [
     {
       "coverage": {
@@ -26406,6 +26406,6 @@
       ]
     }
   ],
-  "samples": 43430,
+  "samples": 43434,
   "unmatchedDivergences": []
 }
