@@ -2,11 +2,11 @@
 
 **Corpus:** dataset / conway  
 **Era:** conway  
-**Dataset commit:** `e8304f8e14ef172e52a20b9f6c7478d4facdda78`  
+**Dataset commit:** `0032b23369961c05edaa341b5408c23beb9ee30f`  
 **Implementation commit:** `6176e413b2be9880c23cedbdaa899f9752693b22`  
 **Protocol version:** 11.0  
-**Generated:** 2026-11-05 18:21:49 UTC  
-**Result:** 100.00% (43,430/43,430) passed; 0 failed, 0 missing results.
+**Generated:** 2026-11-06 11:23:49 UTC  
+**Result:** 100.00% (43,434/43,434) passed; 0 failed, 0 missing results.
 
 Cells show success percentage (passed/total), including missing results in the total. Valid samples must decode and re-encode to the expected bytes. Invalid samples must be rejected. A dash means no samples.
 
@@ -65,7 +65,7 @@ Cells show success percentage (passed/total), including missing results in the t
 | mint | 100.00% (100/100) | 100.00% (418/418) |
 | native\_script | 100.00% (410/410) | 100.00% (2,047/2,047) |
 | network\_id | 100.00% (2/2) | 100.00% (6/6) |
-| nonnegative\_interval | 100.00% (100/100) | 100.00% (312/312) |
+| nonnegative\_interval | 100.00% (100/100) | 100.00% (314/314) |
 | nonzero\_int64 | 100.00% (100/100) | 100.00% (12/12) |
 | operational\_cert | 100.00% (100/100) | 100.00% (374/374) |
 | plutus\_data | 100.00% (100/100) | 100.00% (318/318) |
@@ -97,7 +97,7 @@ Cells show success percentage (passed/total), including missing results in the t
 | transaction\_input | 100.00% (100/100) | 100.00% (257/257) |
 | transaction\_output | 100.00% (93/93) | 100.00% (376/376) |
 | transaction\_witness\_set | 100.00% (100/100) | 100.00% (426/426) |
-| unit\_interval | 100.00% (100/100) | 100.00% (15/15) |
+| unit\_interval | 100.00% (100/100) | 100.00% (17/17) |
 | url | 100.00% (99/99) | 100.00% (152/152) |
 | value | 100.00% (100/100) | 100.00% (359/359) |
 | vkey | 100.00% (100/100) | 100.00% (155/155) |
@@ -109,4 +109,4 @@ Cells show success percentage (passed/total), including missing results in the t
 | vrf\_keyhash | 100.00% (100/100) | 100.00% (150/150) |
 | vrf\_vkey | 100.00% (100/100) | 100.00% (159/159) |
 | withdrawals | 100.00% (100/100) | 100.00% (311/311) |
-| **Total** | **100.00% (10,681/10,681)** | **100.00% (32,749/32,749)** |
+| **Total** | **100.00% (10,681/10,681)** | **100.00% (32,753/32,753)** |

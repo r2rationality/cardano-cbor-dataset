@@ -2,10 +2,10 @@
 
 **Corpus:** dataset / dijkstra  
 **Era:** dijkstra  
-**Dataset commit:** `e8304f8e14ef172e52a20b9f6c7478d4facdda78`  
+**Dataset commit:** `0032b23369961c05edaa341b5408c23beb9ee30f`  
 **Implementation commit:** `6176e413b2be9880c23cedbdaa899f9752693b22`  
 **Protocol version:** 12.0  
-**Generated:** 2026-11-05 18:22:05 UTC  
+**Generated:** 2026-11-06 11:24:04 UTC  
 **Result:** 100.00% (40,437/40,437) passed; 0 failed, 0 missing results.
 
 Cells show success percentage (passed/total), including missing results in the total. Valid samples must decode and re-encode to the expected bytes. Invalid samples must be rejected. A dash means no samples.
