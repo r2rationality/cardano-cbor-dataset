@@ -2,10 +2,10 @@
 
 **Corpus:** dataset / conway  
 **Era:** conway  
-**Dataset commit:** `0032b23369961c05edaa341b5408c23beb9ee30f`  
+**Dataset commit:** `7543411152a41b98053eb32fdad3a64304b44e72`  
 **Implementation commit:** `6176e413b2be9880c23cedbdaa899f9752693b22`  
 **Protocol version:** 11.0  
-**Generated:** 2026-11-06 11:23:49 UTC  
+**Generated:** 2026-11-09 17:05:14 UTC  
 **Result:** 100.00% (43,434/43,434) passed; 0 failed, 0 missing results.
 
 Cells show success percentage (passed/total), including missing results in the total. Valid samples must decode and re-encode to the expected bytes. Invalid samples must be rejected. A dash means no samples.
